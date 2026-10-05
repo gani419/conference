@@ -1,45 +1,84 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useEffect, useState } from 'react';
+import { StatusBar, View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { AppProviders } from './src/app/AppProviders';
+import { RootNavigator } from './src/navigation/RootNavigator';
+import { bootstrapApp } from './src/app/bootstrap';
+import { useAppDispatch } from './src/store/hooks';
+import { useResolvedTheme } from './src/hooks/useResolvedTheme';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+function ConferenceApp() {
+  const dispatch = useAppDispatch();
+  const { resolved, tokens } = useResolvedTheme();
+  const [isReady, setIsReady] = useState(false);
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+  useEffect(() => {
+    bootstrapApp(dispatch)
+      .finally(() => {
+        setIsReady(true);
+      });
+  }, [dispatch]);
+
+  if (!isReady) {
+    return (
+      <View style={[styles.splashContainer, { backgroundColor: tokens.surface }]}>
+        <View style={[styles.splashIconWrap, { backgroundColor: tokens.primarySurface }]}>
+          <Text style={styles.splashIcon}>🎥</Text>
+        </View>
+        <Text style={[styles.splashTitle, { color: tokens.textMain }]}>Conference</Text>
+        <Text style={[styles.splashSub, { color: tokens.textMuted }]}>
+          Host-Controlled Meetings & Live-Streaming
+        </Text>
+        <ActivityIndicator size="small" color={tokens.primary} style={styles.loader} />
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
+    <>
+      <StatusBar
+        barStyle={resolved === 'dark' ? 'light-content' : 'dark-content'}
+      />
+      <RootNavigator />
+    </>
   );
 }
 
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
+export default function App() {
   return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
+    <AppProviders>
+      <ConferenceApp />
+    </AppProviders>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  splashContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  splashIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  splashIcon: {
+    fontSize: 36,
+  },
+  splashTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  splashSub: {
+    fontSize: 13,
+    marginBottom: 16,
+  },
+  loader: {
+    marginTop: 10,
   },
 });
-
-export default App;

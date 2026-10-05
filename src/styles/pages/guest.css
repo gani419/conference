@@ -1,0 +1,8 @@
+/* Guest setup styles */
+.guest-container {
+  flex: 1;
+}
+
+.guest-card {
+  border-radius: 16px;
+}

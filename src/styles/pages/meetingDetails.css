@@ -1,0 +1,8 @@
+/* Meeting Details styles */
+.meeting-detail-card {
+  border-radius: 16px;
+}
+
+.meeting-action-button {
+  border-radius: 12px;
+}

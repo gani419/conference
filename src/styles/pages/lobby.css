@@ -1,0 +1,9 @@
+/* Lobby styles */
+.lobby-preview-box {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.lobby-badge {
+  border-radius: 8px;
+}

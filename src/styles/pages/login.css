@@ -1,0 +1,12 @@
+/* Login page styles */
+.auth-container {
+  flex: 1;
+}
+
+.auth-form-card {
+  border-radius: 16px;
+}
+
+.auth-illustration-card {
+  border-radius: 20px;
+}

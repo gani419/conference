@@ -1,0 +1,13 @@
+/* Dashboard styles */
+.dashboard-container {
+  flex: 1;
+}
+
+.dashboard-hero-card {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.dashboard-meeting-card {
+  border-radius: 14px;
+}

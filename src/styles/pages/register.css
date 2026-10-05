@@ -1,0 +1,8 @@
+/* Register page styles */
+.register-container {
+  flex: 1;
+}
+
+.avatar-selector-scroll {
+  padding-vertical: 8px;
+}

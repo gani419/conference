@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "./variables.css";
+@import "./pages/login.css";
+@import "./pages/register.css";
+@import "./pages/guest.css";
+@import "./pages/dashboard.css";
+@import "./pages/createMeeting.css";
+@import "./pages/meetingDetails.css";
+@import "./pages/lobby.css";
+@import "./pages/meeting.css";
+@import "./pages/settings.css";

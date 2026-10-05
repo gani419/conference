@@ -1,0 +1,8 @@
+/* Settings styles */
+.settings-section-card {
+  border-radius: 16px;
+}
+
+.settings-item-row {
+  min-height: 48px;
+}
