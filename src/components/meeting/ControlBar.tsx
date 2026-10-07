@@ -245,6 +245,12 @@ export const ControlBar: React.FC<ControlBarProps> = ({
               <Text style={[styles.actionLabel, { color: tokens.textMain }]}>Broadcast</Text>
             </TouchableOpacity>
           )}
+          {onStopCameras&&<TouchableOpacity onPress={onStopCameras} style={styles.actionItem} accessibilityRole="button" accessibilityLabel="Stop all cameras">
+            <Text style={[styles.actionLabel,{color:tokens.textMain}]}>Stop cameras</Text>
+          </TouchableOpacity>}
+          {onToggleLockEntry&&<TouchableOpacity onPress={onToggleLockEntry} style={styles.actionItem} accessibilityRole="button" accessibilityLabel={isLocked?'Unlock meeting':'Lock meeting'}>
+            <Text style={[styles.actionLabel,{color:tokens.textMain}]}>{isLocked?'Unlock':'Lock'}</Text>
+          </TouchableOpacity>}
         </>
       )}
 

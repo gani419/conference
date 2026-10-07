@@ -11,6 +11,7 @@ export const ROUTES = {
   MEETING_DETAILS: 'MeetingDetails',
   EDIT_MEETING: 'EditMeeting',
   LOBBY: 'Lobby',
+  JOIN_LINK: 'JoinLink',
   MEETING_ROOM: 'MeetingRoom',
   MEETING_SUMMARY: 'MeetingSummary',
   SETTINGS: 'Settings',

@@ -29,6 +29,7 @@ export const GuestSetupScreen: React.FC<Props> = ({ navigation, route }) => {
   const [error, setError] = useState<string | null>(null);
 
   const pendingMeetingId = route.params?.pendingMeetingId;
+  const pendingMeetingCode=route.params?.pendingMeetingCode;
 
   const handleContinue = async (): Promise<void> => {
     setError(null);
@@ -51,7 +52,9 @@ export const GuestSetupScreen: React.FC<Props> = ({ navigation, route }) => {
 
     if (res.success) {
       dispatch(setSession(res.data.session));
-      if (pendingMeetingId) {
+      if(pendingMeetingCode) {
+        navigation.replace(ROUTES.JOIN_LINK,{code:pendingMeetingCode});
+      } else if (pendingMeetingId) {
         navigation.replace(ROUTES.MEETING_DETAILS, { meetingId: pendingMeetingId });
       } else {
         navigation.replace(ROUTES.HOME);

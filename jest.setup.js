@@ -1,4 +1,17 @@
 /* eslint-env jest */
+jest.mock('@react-native-clipboard/clipboard', () => ({ setString: jest.fn() }));
+// Device SDKs are unavailable in Jest; adapter tests supply explicit server responses.
+jest.mock('@livekit/react-native-webrtc', () => ({ RTCView: 'RTCView' }));
+jest.mock('@livekit/react-native', () => ({
+  VideoTrack: 'VideoTrack', registerGlobals: jest.fn(),
+  AudioSession: { startAudioSession: jest.fn(), stopAudioSession: jest.fn(), selectAudioOutput: jest.fn() },
+}));
+jest.mock('./src/backend/supabaseClient', () => ({ supabase: {
+  auth: { getSession: jest.fn(async()=>({data:{session:null},error:null})),
+    onAuthStateChange: jest.fn(()=>({data:{subscription:{unsubscribe:jest.fn()}}})),
+    signInWithPassword:jest.fn(),signUp:jest.fn(),signInAnonymously:jest.fn(),signOut:jest.fn(),getUser:jest.fn() },
+  from:jest.fn(),channel:jest.fn(),removeChannel:jest.fn(),
+} }));
 
 // Mock react-native-mmkv
 jest.mock('react-native-mmkv', () => {
@@ -56,8 +69,9 @@ jest.mock('react-native-contacts', () => ({
 }));
 
 // Mock react-native-document-picker
-jest.mock('react-native-document-picker', () => ({
+jest.mock('@react-native-documents/picker', () => ({
   pick: jest.fn(() => Promise.resolve([])),
+  keepLocalCopy:jest.fn(),isErrorWithCode:jest.fn(),errorCodes:{OPERATION_CANCELED:'OPERATION_CANCELED'},
   types: {
     allFiles: '*/*',
     csv: 'text/csv',

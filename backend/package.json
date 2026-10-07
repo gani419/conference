@@ -1,0 +1,15 @@
+{
+  "name": "conference-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "env:sync": "node scripts/sync-env.mjs",
+    "auth:configure": "node scripts/configure-auth.mjs",
+    "project:link": "node scripts/link-project.mjs",
+    "secrets:upload": "node scripts/upload-secrets.mjs",
+    "worker:configure": "node scripts/configure-worker.mjs",
+    "media:render": "node scripts/render-livekit.mjs",
+    "smoke": "node scripts/smoke-test.mjs",
+    "test": "node --test tests/*.test.mjs"
+  }
+}

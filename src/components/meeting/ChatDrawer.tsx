@@ -8,6 +8,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { ChatMessage } from '../../types/chat';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
@@ -16,7 +17,8 @@ import { getAvatarDefinition } from '../../constants/avatars';
 export interface ChatDrawerProps {
   messages: ChatMessage[];
   canChat: boolean;
-  onSendMessage: (text: string) => void;
+  onSendMessage: (text: string) => void | boolean | Promise<void | boolean>;
+  onSendAnnouncement?: ((text: string) => Promise<boolean>) | undefined;
   onClose?: () => void;
 }
 
@@ -24,15 +26,27 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
   messages,
   canChat,
   onSendMessage,
+  onSendAnnouncement,
   onClose,
 }) => {
   const { tokens } = useResolvedTheme();
   const [inputText, setInputText] = useState('');
+  const [isAnnouncement, setIsAnnouncement] = useState(false);
+  const [sending, setSending] = useState(false);
 
-  const handleSend = (): void => {
-    if (!inputText.trim() || !canChat) return;
-    onSendMessage(inputText.trim());
-    setInputText('');
+  const handleSend = async (): Promise<void> => {
+    if (!inputText.trim() || !canChat || sending) return;
+    setSending(true);
+    try {
+      const result = await (isAnnouncement && onSendAnnouncement
+        ? onSendAnnouncement(inputText.trim())
+        : onSendMessage(inputText.trim()));
+      if (result !== false) setInputText('');
+    } catch {
+      Alert.alert('Message not sent', 'Please try sending your message again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -48,10 +62,24 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
     >
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: tokens.border }]}>
-        <Text style={[styles.title, { color: tokens.textMain }]}>Meeting Chat</Text>
+        <Text style={[styles.title, { color: tokens.textMain }]}>
+          Meeting Chat
+        </Text>
+        {onSendAnnouncement && (
+          <TouchableOpacity
+            onPress={() => setIsAnnouncement(!isAnnouncement)}
+            accessibilityRole="button"
+          >
+            <Text style={{ color: tokens.primary }}>
+              {isAnnouncement ? 'Announcement' : 'Chat message'}
+            </Text>
+          </TouchableOpacity>
+        )}
         {onClose && (
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Text style={[styles.closeText, { color: tokens.textMuted }]}>✕</Text>
+            <Text style={[styles.closeText, { color: tokens.textMuted }]}>
+              ✕
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -69,11 +97,11 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
             </Text>
           </View>
         ) : (
-          messages.map((msg) => {
+          messages.map(msg => {
             const avatarDef = getAvatarDefinition(msg.senderAvatarId);
-            const isAnnouncement = msg.type === 'announcement';
+            const isAnnouncementMessage = msg.type === 'announcement';
 
-            if (isAnnouncement) {
+            if (isAnnouncementMessage) {
               return (
                 <View
                   key={msg.id}
@@ -87,11 +115,21 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                 >
                   <View style={styles.announcementHeader}>
                     <Text style={styles.announcementIcon}>📢</Text>
-                    <Text style={[styles.announcementTitle, { color: tokens.primary }]}>
+                    <Text
+                      style={[
+                        styles.announcementTitle,
+                        { color: tokens.primary },
+                      ]}
+                    >
                       Host Announcement
                     </Text>
                   </View>
-                  <Text style={[styles.announcementText, { color: tokens.textMain }]}>
+                  <Text
+                    style={[
+                      styles.announcementText,
+                      { color: tokens.textMain },
+                    ]}
+                  >
                     {msg.content}
                   </Text>
                 </View>
@@ -101,29 +139,52 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
             return (
               <View key={msg.id} style={styles.messageRow}>
                 <View
-                  style={[styles.avatarCircle, { backgroundColor: avatarDef.backgroundColor }]}
+                  style={[
+                    styles.avatarCircle,
+                    { backgroundColor: avatarDef.backgroundColor },
+                  ]}
                 >
-                  <Text style={[styles.avatarInitials, { color: avatarDef.textColor }]}>
+                  <Text
+                    style={[
+                      styles.avatarInitials,
+                      { color: avatarDef.textColor },
+                    ]}
+                  >
                     {avatarDef.initials}
                   </Text>
                 </View>
                 <View style={styles.messageContent}>
                   <View style={styles.senderRow}>
-                    <Text style={[styles.senderName, { color: tokens.textMain }]}>
+                    <Text
+                      style={[styles.senderName, { color: tokens.textMain }]}
+                    >
                       {msg.senderName}
                     </Text>
                     {msg.isHostOrCoHost && (
-                      <Text style={[styles.hostBadge, { color: tokens.primary }]}>Host</Text>
+                      <Text
+                        style={[styles.hostBadge, { color: tokens.primary }]}
+                      >
+                        Host
+                      </Text>
                     )}
-                    <Text style={[styles.timestamp, { color: tokens.textMuted }]}>
+                    <Text
+                      style={[styles.timestamp, { color: tokens.textMuted }]}
+                    >
                       {new Date(msg.timestamp).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
                     </Text>
                   </View>
-                  <View style={[styles.bubble, { backgroundColor: tokens.surfaceSubtle }]}>
-                    <Text style={[styles.bubbleText, { color: tokens.textMain }]}>
+                  <View
+                    style={[
+                      styles.bubble,
+                      { backgroundColor: tokens.surfaceSubtle },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.bubbleText, { color: tokens.textMain }]}
+                    >
                       {msg.content}
                     </Text>
                   </View>
@@ -136,7 +197,12 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
 
       {/* Input or Disabled Notice */}
       {!canChat ? (
-        <View style={[styles.disabledNotice, { backgroundColor: tokens.surfaceSubtle }]}>
+        <View
+          style={[
+            styles.disabledNotice,
+            { backgroundColor: tokens.surfaceSubtle },
+          ]}
+        >
           <Text style={styles.lockIcon}>🔒</Text>
           <Text style={[styles.disabledText, { color: tokens.textMuted }]}>
             Chat is not available. The host has disabled chat for attendees.
@@ -145,7 +211,10 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
       ) : (
         <View style={[styles.inputBar, { borderTopColor: tokens.border }]}>
           <TextInput
-            placeholder="Send a message..."
+            placeholder={
+              isAnnouncement ? 'Send an announcement…' : 'Send a message…'
+            }
+            editable={!sending}
             placeholderTextColor={tokens.textSubtle}
             value={inputText}
             onChangeText={setInputText}
@@ -160,11 +229,13 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
           />
           <TouchableOpacity
             onPress={handleSend}
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() || sending}
             style={[
               styles.sendButton,
               {
-                backgroundColor: inputText.trim() ? tokens.primary : tokens.surfaceSubtle,
+                backgroundColor: inputText.trim()
+                  ? tokens.primary
+                  : tokens.surfaceSubtle,
               },
             ]}
           >

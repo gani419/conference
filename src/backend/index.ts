@@ -2,9 +2,10 @@ import { BackendAdapter } from './BackendAdapter';
 import { MockBackendAdapter } from './MockBackendAdapter';
 import { HttpBackendAdapter } from './HttpBackendAdapter';
 import { ENV } from '../config/environment';
+import { SupabaseBackendAdapter } from './SupabaseBackendAdapter';
 
 export const backend: BackendAdapter =
-  ENV.backendMode === 'http'
+  ENV.backendMode === 'supabase' ? new SupabaseBackendAdapter() : ENV.backendMode === 'http'
     ? new HttpBackendAdapter(ENV.apiBaseUrl)
     : new MockBackendAdapter();
 

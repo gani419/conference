@@ -1,0 +1,21 @@
+import { AccessToken, RoomServiceClient } from 'npm:livekit-server-sdk@2.19.1';
+import { createHash } from 'node:crypto';
+import { parseEnv } from './env.mjs';
+
+const values = parseEnv(await Deno.readTextFile(new URL('../../.env', import.meta.url)));
+const service = new RoomServiceClient(values.LIVEKIT_URL.replace(/^wss:/, 'https:'), values.LIVEKIT_API_KEY, values.LIVEKIT_API_SECRET);
+await service.listRooms();
+console.log('LiveKit Cloud API credentials accepted.');
+const body = JSON.stringify({ event: 'room_started', id: crypto.randomUUID(), createdAt: Math.floor(Date.now() / 1000), room: { name: 'conference-webhook-smoke-test' } });
+const token = new AccessToken(values.LIVEKIT_API_KEY, values.LIVEKIT_API_SECRET, { ttl: 60 });
+token.sha256 = createHash('sha256').update(body).digest('base64');
+const headers = { Authorization: await token.toJwt(), 'Content-Type': 'application/webhook+json' };
+const url = `${values.SUPABASE_URL}/functions/v1/media-webhook`;
+const valid = await fetch(url, { method: 'POST', headers, body });
+await valid.text();
+if (valid.status !== 200) throw new Error(`Signed webhook failed (HTTP ${valid.status})`);
+console.log('Signed webhook accepted (200).');
+const tampered = await fetch(url, { method: 'POST', headers, body: body + ' ' });
+await tampered.text();
+if (tampered.status !== 401) throw new Error(`Tampered webhook was not rejected (HTTP ${tampered.status})`);
+console.log('Tampered webhook rejected (401). LiveKit dashboard registration must be checked separately.');

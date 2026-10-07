@@ -12,7 +12,8 @@ import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { authService } from '../../services/authService';
 import { DEFAULT_AVATAR_ID } from '../../constants/avatars';
 import { AvatarId } from '../../types/common';
-import { normalizePhoneToE164 } from '../../utils/contactNormalization';
+import { useAppDispatch } from '../../store/hooks';
+import { setSession } from '../../store/slices/authSlice';
 import { registerFormSchema } from '../../schemas/authSchemas';
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.REGISTER>;
@@ -20,6 +21,7 @@ type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.REGISTER>;
 export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
   const { tokens } = useResolvedTheme();
   const { isCompact } = useLayoutMode();
+  const dispatch = useAppDispatch();
 
   const [name, setName] = useState('');
   const [identifier, setIdentifier] = useState('');
@@ -30,13 +32,11 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const pendingMeetingId = route.params?.pendingMeetingId;
+  const pendingMeetingCode=route.params?.pendingMeetingCode;
 
   const handleRegister = async (): Promise<void> => {
     setErrors({});
-    const isEmail = identifier.includes('@');
-    const authIdentifier = isEmail
-      ? { kind: 'email' as const, email: identifier.trim().toLowerCase() }
-      : { kind: 'phone' as const, phoneE164: normalizePhoneToE164(identifier.trim()) };
+    const authIdentifier = { kind: 'email' as const, email: identifier.trim().toLowerCase() };
 
     const validation = registerFormSchema.safeParse({
       displayName: name,
@@ -66,6 +66,13 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
     setLoading(false);
 
     if (res.success) {
+      if (res.data.session) {
+        dispatch(setSession(res.data.session));
+        if(pendingMeetingCode) navigation.replace(ROUTES.JOIN_LINK,{code:pendingMeetingCode});
+        else if(pendingMeetingId) navigation.replace(ROUTES.MEETING_DETAILS,{meetingId:pendingMeetingId});
+        else navigation.replace(ROUTES.HOME);
+        return;
+      }
       navigation.navigate(ROUTES.VERIFY_CONTACT, {
         verificationId: res.data.verificationId,
         contactDestination: identifier.trim(),
@@ -102,9 +109,9 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
       />
 
       <AppInput
-        label="Email or mobile number"
+        label="Email"
         icon="✉️"
-        placeholder="alex@company.com or +14155550100"
+        placeholder="alex@company.com"
         value={identifier}
         onChangeText={setIdentifier}
         autoCapitalize="none"
@@ -148,7 +155,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
         <Text style={[styles.footerText, { color: tokens.textMuted }]}>
           Already have an account?{' '}
         </Text>
-        <TouchableOpacity onPress={() => navigation.navigate(ROUTES.LOGIN, { pendingMeetingId })}>
+        <TouchableOpacity onPress={() => navigation.navigate(ROUTES.LOGIN, { pendingMeetingId, pendingMeetingCode })}>
           <Text style={[styles.linkText, { color: tokens.primary }]}>Log in</Text>
         </TouchableOpacity>
       </View>

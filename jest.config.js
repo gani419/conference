@@ -1,5 +1,6 @@
 module.exports = {
   preset: '@react-native/jest-preset',
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/backend/', '<rootDir>/web/'],
   moduleNameMapper: {
     '^react-redux$': '<rootDir>/node_modules/react-redux/dist/cjs/index.js',
   },

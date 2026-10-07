@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Clipboard from '@react-native-clipboard/clipboard';
 import {
   View,
   Text,
@@ -19,7 +20,7 @@ import { AppButton } from '../../components/forms/AppButton';
 import {
   useGetMeetingQuery,
   useCancelMeetingMutation,
-  useStartMeetingMutation,
+  useGetParticipantsQuery,
 } from '../../api/appApi';
 import { useAppSelector } from '../../store/hooks';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
@@ -42,7 +43,7 @@ export const MeetingDetailsScreen: React.FC = () => {
     refetch,
   } = useGetMeetingQuery({ meetingId }, { skip: !meetingId });
 
-  const [startMeeting, { isLoading: isStarting }] = useStartMeetingMutation();
+  const {data:participants=[]}=useGetParticipantsQuery(meetingId,{skip:!session});
   const [cancelMeeting, { isLoading: isCancelling }] = useCancelMeetingMutation();
   const [copiedNotice, setCopiedNotice] = useState<string | null>(null);
 
@@ -61,9 +62,7 @@ export const MeetingDetailsScreen: React.FC = () => {
   }
 
   const isHost = (meeting.hostId ?? meeting.organizerId) === currentUserId;
-  const isCoHost = meeting.invitees.some(
-    (inv) => (inv.userId === currentUserId || inv.id === currentUserId) && inv.role === 'co_host',
-  );
+  const isCoHost = participants.some(p=>p.userId===currentUserId&&p.role==='co_host'&&p.status==='in_meeting');
   const hasHostPrivileges = isHost || isCoHost;
 
   const isScheduled = meeting.timing.kind === 'scheduled';
@@ -87,12 +86,13 @@ export const MeetingDetailsScreen: React.FC = () => {
   };
 
   const handleCopyCode = () => {
-    // In React Native without clipboard dependency, notify user
+    Clipboard.setString(meeting.code);
     setCopiedNotice('Meeting code copied: ' + meeting.code);
     setTimeout(() => setCopiedNotice(null), 3000);
   };
 
   const handleCopyLink = () => {
+    Clipboard.setString(meeting.shareLink);
     setCopiedNotice('Meeting link copied: ' + meeting.shareLink);
     setTimeout(() => setCopiedNotice(null), 3000);
   };
@@ -107,19 +107,7 @@ export const MeetingDetailsScreen: React.FC = () => {
       return;
     }
 
-    if (hasHostPrivileges) {
-      if (meeting.status !== 'live') {
-        try {
-          await startMeeting({ meetingId: meeting.id }).unwrap();
-        } catch {
-          // Ignore if already started
-        }
-      }
-      navigation.navigate(ROUTES.MEETING_ROOM, { meetingId: meeting.id });
-    } else {
-      // Guests / invitees enter Lobby
-      navigation.navigate(ROUTES.LOBBY, { meetingId: meeting.id });
-    }
+    navigation.navigate(ROUTES.LOBBY, { meetingId: meeting.id });
   };
 
   const handleCancel = () => {
@@ -410,7 +398,6 @@ export const MeetingDetailsScreen: React.FC = () => {
                 }
                 onPress={handleStartOrJoin}
                 variant="primary"
-                loading={isStarting}
                 disabled={!hasHostPrivileges && !isEligibleToJoin}
               />
 

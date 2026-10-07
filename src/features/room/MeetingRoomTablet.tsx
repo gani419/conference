@@ -154,6 +154,7 @@ export const MeetingRoomTablet: React.FC<ReturnType<typeof useMeetingRoomControl
                 messages={c.chatMessages}
                 canChat={c.myPermissions.chat || c.isHostOrCoHost}
                 onSendMessage={c.handleSendMessage}
+                onSendAnnouncement={c.isHostOrCoHost?c.handleSendAnnouncement:undefined}
                 onClose={() => c.setActivePanel('none')}
               />
             )}
@@ -206,7 +207,7 @@ export const MeetingRoomTablet: React.FC<ReturnType<typeof useMeetingRoomControl
                 </View>
                 <RaisedHandsQueue
                   participantsWithHandsRaised={c.raisedHandParticipants}
-                  onLowerHand={(pId) => c.handleMuteParticipant(pId)}
+                  onLowerHand={c.handleLowerHand}
                 />
               </View>
             )}
@@ -307,7 +308,7 @@ export const MeetingRoomTablet: React.FC<ReturnType<typeof useMeetingRoomControl
           c.setActivePanel((prev) => (prev === 'participants' ? 'none' : 'participants'))
         }
         onToggleRaiseHand={c.handleToggleRaiseHand}
-        onLeavePress={c.handleLeaveMeeting}
+        onLeavePress={c.isHostOrCoHost?c.handleEndMeetingForAll:c.handleLeaveMeeting}
         onMuteAll={c.isHostOrCoHost ? c.handleMuteAll : undefined}
         onStopCameras={c.isHostOrCoHost ? c.handleStopAllCameras : undefined}
         onToggleLockEntry={c.isHostOrCoHost ? c.handleToggleLockMeeting : undefined}

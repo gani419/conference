@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MeetingParticipant } from '../../types/participant';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 import { getAvatarDefinition } from '../../constants/avatars';
+import { LiveVideo } from './LiveVideo';
 
 export interface ParticipantTileProps {
   participant: MeetingParticipant;
@@ -60,6 +61,7 @@ export const ParticipantTile: React.FC<ParticipantTileProps> = ({
       </View>
 
       {/* Hand Raised Badge */}
+      <LiveVideo userId={participant.userId} />
       {participant.media.isHandRaised && (
         <View style={styles.handBadge}>
           <Text style={styles.handIcon}>✋</Text>

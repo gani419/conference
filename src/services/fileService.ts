@@ -1,19 +1,18 @@
-import DocumentPicker from 'react-native-document-picker';
+import { pick, types, keepLocalCopy, isErrorWithCode, errorCodes } from '@react-native-documents/picker';
 import { csvService } from './csvService';
 import { CsvImportResult } from '../types/csv';
 
 export const fileService = {
   async pickCsvFile(): Promise<{ fileName: string; content: string } | null> {
     try {
-      const res = await DocumentPicker.pickSingle({
-        type: [DocumentPicker.types.allFiles, 'text/csv', 'text/comma-separated-values'],
-        copyTo: 'cachesDirectory',
-      });
+      const [res] = await pick({ type: [types.allFiles], allowMultiSelection: false });
+      const [copy] = await keepLocalCopy({ destination:'cachesDirectory', files:[{uri:res.uri,fileName:res.name||'invitees.csv'}] });
+      if(copy.status!=='success') throw new Error('Could not read the selected file');
 
       let content = '';
-      if (res.fileCopyUri || res.uri) {
+      if (copy.localUri) {
         // Fetch uri as blob/text
-        const fileUri = res.fileCopyUri || res.uri;
+        const fileUri = copy.localUri;
         const response = await fetch(fileUri);
         content = await response.text();
       }
@@ -23,10 +22,10 @@ export const fileService = {
         content,
       };
     } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
+      if (isErrorWithCode(err) && err.code===errorCodes.OPERATION_CANCELED) {
         return null;
       }
-      return null;
+      throw err;
     }
   },
 

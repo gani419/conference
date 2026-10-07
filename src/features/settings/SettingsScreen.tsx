@@ -20,7 +20,8 @@ import { setThemePreference } from '../../store/slices/themeSlice';
 import { clearSession } from '../../store/slices/authSlice';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 import { getAvatarDefinition } from '../../constants/avatars';
-import { credentialService } from '../../services/credentialService';
+import { authService } from '../../services/authService';
+import { mediaService } from '../../services/mediaService';
 import { storageService } from '../../services/storageService';
 import { STORAGE_KEYS } from '../../constants/storageKeys';
 import { ENV } from '../../config/environment';
@@ -44,10 +45,12 @@ export const SettingsScreen: React.FC = () => {
       {
         text: 'Clear',
         style: 'destructive',
-        onPress: () => {
-          storageService.remove(STORAGE_KEYS.GUEST_PROFILE);
-          dispatch(clearSession());
-          navigation.replace(ROUTES.GUEST_SETUP);
+          onPress: async () => {
+            await mediaService.disconnect();
+            await authService.logout();
+            storageService.remove(STORAGE_KEYS.GUEST_PROFILE);
+            dispatch(clearSession());
+            navigation.replace(ROUTES.GUEST_SETUP);
         },
       },
     ]);
@@ -60,7 +63,8 @@ export const SettingsScreen: React.FC = () => {
         text: 'Sign Out',
         style: 'destructive',
         onPress: async () => {
-          await credentialService.clearSession();
+            await mediaService.disconnect();
+            await authService.logout();
           storageService.remove(STORAGE_KEYS.AUTH_SESSION);
           dispatch(clearSession());
           navigation.replace(ROUTES.LOGIN);

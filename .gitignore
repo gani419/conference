@@ -31,6 +31,7 @@ local.properties
 *.iml
 *.hprof
 .cxx/
+.cxx.recovery-*/
 *.keystore
 !debug.keystore
 .kotlin/
@@ -73,3 +74,15 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+**/supabase/.temp/
+**/supabase/.branches/
+backend/livekit/generated/
+src/config/publicEnvironment.generated.ts

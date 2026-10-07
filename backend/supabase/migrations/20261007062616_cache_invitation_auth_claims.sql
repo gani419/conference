@@ -1,0 +1,1 @@
+alter policy invitations_select on public.invitations using(private.is_host(meeting_id) or (email=lower((select auth.jwt())->>'email') and coalesce((select auth.jwt())->>'is_anonymous','false')='false'));

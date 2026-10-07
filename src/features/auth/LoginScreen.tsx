@@ -12,7 +12,6 @@ import { authService } from '../../services/authService';
 import { useAppDispatch } from '../../store/hooks';
 import { setSession } from '../../store/slices/authSlice';
 import { storageService } from '../../services/storageService';
-import { normalizePhoneToE164 } from '../../utils/contactNormalization';
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.LOGIN>;
 
@@ -21,17 +20,18 @@ export const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
   const { isCompact } = useLayoutMode();
   const dispatch = useAppDispatch();
 
-  const [identifier, setIdentifier] = useState(storageService.getAuthIdentifierDraft() || 'taylor.kim@company.com');
-  const [password, setPassword] = useState('password12345');
+  const [identifier, setIdentifier] = useState(storageService.getAuthIdentifierDraft() || '');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const pendingMeetingId = route.params?.pendingMeetingId;
+  const pendingMeetingCode=route.params?.pendingMeetingCode;
 
   const handleLogin = async (): Promise<void> => {
     setError(null);
     if (!identifier.trim()) {
-      setError('Please enter your email or mobile number');
+      setError('Please enter your email');
       return;
     }
     if (!password) {
@@ -42,10 +42,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
     setLoading(true);
     storageService.setAuthIdentifierDraft(identifier.trim());
 
-    const isEmail = identifier.includes('@');
-    const authIdentifier = isEmail
-      ? { kind: 'email' as const, email: identifier.trim().toLowerCase() }
-      : { kind: 'phone' as const, phoneE164: normalizePhoneToE164(identifier.trim()) };
+    const authIdentifier = { kind: 'email' as const, email: identifier.trim().toLowerCase() };
 
     const result = await authService.login({
       identifier: authIdentifier,
@@ -56,7 +53,9 @@ export const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
 
     if (result.success) {
       dispatch(setSession(result.data.session));
-      if (pendingMeetingId) {
+      if(pendingMeetingCode) {
+        navigation.replace(ROUTES.JOIN_LINK,{code:pendingMeetingCode});
+      } else if (pendingMeetingId) {
         navigation.replace(ROUTES.MEETING_DETAILS, { meetingId: pendingMeetingId });
       } else {
         navigation.replace(ROUTES.HOME);
@@ -75,9 +74,9 @@ export const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
       </Text>
 
       <AppInput
-        label="Email or mobile number"
+        label="Email"
         icon="✉️"
-        placeholder="alex@company.com or +14155550100"
+        placeholder="alex@company.com"
         value={identifier}
         onChangeText={setIdentifier}
         autoCapitalize="none"
@@ -94,7 +93,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
       />
 
       <TouchableOpacity
-        onPress={() => navigation.navigate(ROUTES.FORGOT_PASSWORD)}
+        onPress={() => Alert.alert('Password recovery', 'Password recovery will be available after email delivery is configured.')}
         style={styles.forgotBtn}
       >
         <Text style={[styles.forgotText, { color: tokens.primary }]}>Forgot password?</Text>
@@ -118,7 +117,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
       <AppButton
         title="Create account"
         variant="secondary"
-        onPress={() => navigation.navigate(ROUTES.REGISTER, { pendingMeetingId })}
+        onPress={() => navigation.navigate(ROUTES.REGISTER, { pendingMeetingId, pendingMeetingCode })}
         style={styles.secondaryBtn}
       />
 
@@ -126,7 +125,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
         title="Continue as guest"
         variant="outline"
         icon="👤"
-        onPress={() => navigation.navigate(ROUTES.GUEST_SETUP, { pendingMeetingId })}
+        onPress={() => navigation.navigate(ROUTES.GUEST_SETUP, { pendingMeetingId, pendingMeetingCode })}
         style={styles.secondaryBtn}
       />
     </View>

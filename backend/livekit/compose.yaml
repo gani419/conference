@@ -1,0 +1,31 @@
+# Run on a Linux VM with host networking, a public IP, and DNS configured.
+services:
+  livekit:
+    image: livekit/livekit-server:v1.13.8
+    restart: unless-stopped
+    network_mode: host
+    command: ["--config", "/etc/livekit.yaml"]
+    volumes:
+      - ./generated/livekit.yaml:/etc/livekit.yaml:ro
+  proxy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      LIVEKIT_DOMAIN: ${LIVEKIT_DOMAIN:?Set LIVEKIT_DOMAIN in the root .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+  worker:
+    image: node:22.22.0-alpine
+    restart: unless-stopped
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL}
+      BACKEND_WORKER_SECRET: ${BACKEND_WORKER_SECRET:?Set BACKEND_WORKER_SECRET}
+    command: ["node", "/app/outbox-runner.mjs"]
+    volumes:
+      - ../scripts/outbox-runner.mjs:/app/outbox-runner.mjs:ro
+volumes:
+  caddy-data:
+  caddy-config:

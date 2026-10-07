@@ -43,7 +43,7 @@ export const ContactPickerModal: React.FC<ContactPickerModalProps> = ({
       contactService
         .getContacts()
         .then((list) => {
-          setContacts(list);
+          setContacts(list.filter(contact=>contact.emailAddresses.length>0));
           setLoading(false);
         })
         .catch(() => {

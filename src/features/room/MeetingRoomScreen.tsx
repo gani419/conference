@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text } from 'react-native';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { RootStackParamList } from '../../types/navigation';
 import { ROUTES } from '../../constants/routes';
@@ -31,6 +32,9 @@ export const MeetingRoomScreen: React.FC = () => {
 
   return (
     <ScreenContainer scrollable={false} padded={false} testID="meeting-room-screen">
+      {controller.connectionState !== 'connected' && <Text accessibilityLiveRegion="polite" style={{padding:12,color:'#ffffff',backgroundColor:'#334155'}}>
+        {controller.mediaError || `Call ${controller.connectionState}`}
+      </Text>}
       {renderContent()}
     </ScreenContainer>
   );

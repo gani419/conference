@@ -18,6 +18,9 @@ import {
 import { credentialService } from './credentialService';
 import { storageService } from './storageService';
 import { AppUser } from '../types/user';
+import { ENV } from '../config/environment';
+import { supabase } from '../backend/supabaseClient';
+import { restoreHostedSession, clearMeetingPreviews } from '../backend/SupabaseBackendAdapter';
 
 function makeContext(accessToken: string | null = null): RequestContext {
   return {
@@ -28,6 +31,7 @@ function makeContext(accessToken: string | null = null): RequestContext {
 
 export const authService = {
   async restoreSession(): Promise<Session | null> {
+    if (ENV.backendMode === 'supabase') return restoreHostedSession();
     const savedSession = await credentialService.getSession();
     if (savedSession) {
       return savedSession;
@@ -58,7 +62,11 @@ export const authService = {
   },
 
   async register(payload: RegisterPayload): Promise<ApiResult<RegisterResponse>> {
-    return backend.register(payload, makeContext());
+    const result = await backend.register(payload, makeContext());
+    if (result.success && result.data.session) {
+      await credentialService.saveSession(result.data.session);
+    }
+    return result;
   },
 
   async guestLogin(payload: GuestLoginPayload): Promise<ApiResult<GuestLoginResponse>> {
@@ -97,6 +105,11 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
+    if (ENV.backendMode === 'supabase') {
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) throw error;
+      clearMeetingPreviews();
+    }
     await credentialService.clearAllCredentials();
     storageService.clearAllGuestData();
   },

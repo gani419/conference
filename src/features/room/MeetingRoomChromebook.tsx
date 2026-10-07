@@ -174,6 +174,7 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
                 messages={c.chatMessages}
                 canChat={c.myPermissions.chat || c.isHostOrCoHost}
                 onSendMessage={c.handleSendMessage}
+                onSendAnnouncement={c.isHostOrCoHost?c.handleSendAnnouncement:undefined}
                 onClose={() => c.setActivePanel('none')}
               />
             )}
@@ -226,7 +227,7 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
                 </View>
                 <RaisedHandsQueue
                   participantsWithHandsRaised={c.raisedHandParticipants}
-                  onLowerHand={(pId) => c.handleMuteParticipant(pId)}
+                  onLowerHand={c.handleLowerHand}
                 />
               </View>
             )}
@@ -327,7 +328,7 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
           c.setActivePanel((prev) => (prev === 'participants' ? 'none' : 'participants'))
         }
         onToggleRaiseHand={c.handleToggleRaiseHand}
-        onLeavePress={c.handleLeaveMeeting}
+        onLeavePress={c.isHostOrCoHost?c.handleEndMeetingForAll:c.handleLeaveMeeting}
         onMuteAll={c.isHostOrCoHost ? c.handleMuteAll : undefined}
         onStopCameras={c.isHostOrCoHost ? c.handleStopAllCameras : undefined}
         onToggleLockEntry={c.isHostOrCoHost ? c.handleToggleLockMeeting : undefined}

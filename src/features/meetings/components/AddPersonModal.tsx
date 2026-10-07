@@ -125,7 +125,6 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
           <SegmentedControl
             options={[
               { label: 'Email', value: 'email' },
-              { label: 'Phone', value: 'phone' },
             ]}
             selectedValue={contactMethod}
             onSelect={(val) => {

@@ -3,7 +3,7 @@ import { RootStackParamList } from '../types/navigation';
 import { ROUTES } from '../constants/routes';
 
 export const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: ['meet.app://', 'https://meet.app'],
+  prefixes: ['conference://'],
   config: {
     screens: {
       [ROUTES.LOGIN]: 'login',
@@ -17,6 +17,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       [ROUTES.MEETING_DETAILS]: 'meetings/:meetingId',
       [ROUTES.EDIT_MEETING]: 'meetings/:meetingId/edit',
       [ROUTES.LOBBY]: 'lobby/:meetingId',
+      [ROUTES.JOIN_LINK]: 'join/:code',
       [ROUTES.MEETING_ROOM]: 'room/:meetingId',
       [ROUTES.MEETING_SUMMARY]: 'summary/:meetingId',
       [ROUTES.SETTINGS]: 'settings',

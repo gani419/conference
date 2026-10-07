@@ -1,3 +1,6 @@
+import { LiveKitMediaAdapter } from './livekitMedia';
+import { ENV } from '../config/environment';
+
 export type MediaConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 
 export interface LocalMediaState {
@@ -141,47 +144,4 @@ export class MockMediaAdapter implements MediaAdapter {
   }
 }
 
-export class LiveKitMediaAdapter implements MediaAdapter {
-  async connect(_roomToken: string, _meetingId: string): Promise<boolean> {
-    throw new Error('LiveKit adapter requires a configured LiveKit server endpoint and room token.');
-  }
-
-  async disconnect(): Promise<void> {}
-
-  getConnectionState(): MediaConnectionState {
-    return 'disconnected';
-  }
-
-  getLocalMediaState(): LocalMediaState {
-    return {
-      isAudioEnabled: false,
-      isVideoEnabled: false,
-      isScreenShareEnabled: false,
-      activeAudioDevice: 'speaker',
-    };
-  }
-
-  async toggleMicrophone(_enabled: boolean): Promise<boolean> {
-    return false;
-  }
-
-  async toggleCamera(_enabled: boolean): Promise<boolean> {
-    return false;
-  }
-
-  async toggleScreenShare(_enabled: boolean): Promise<boolean> {
-    return false;
-  }
-
-  async setAudioOutput(_device: 'speaker' | 'earpiece' | 'bluetooth'): Promise<void> {}
-
-  onTrackStateChange(_listener: (states: RemoteParticipantTrackState[]) => void): () => void {
-    return () => {};
-  }
-
-  onConnectionStateChange(_listener: (state: MediaConnectionState) => void): () => void {
-    return () => {};
-  }
-}
-
-export const mediaService: MediaAdapter = new MockMediaAdapter();
+export const mediaService = ENV.mediaMode === 'livekit' ? new LiveKitMediaAdapter() : new MockMediaAdapter();

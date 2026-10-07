@@ -1,12 +1,11 @@
 import { AppDispatch } from '../store';
 import { setSession } from '../store/slices/authSlice';
 import { setThemePreference } from '../store/slices/themeSlice';
-import { credentialService } from '../services/credentialService';
+import { authService } from '../services/authService';
 import { storageService } from '../services/storageService';
 import { STORAGE_KEYS } from '../constants/storageKeys';
 import { mockDatabase } from '../backend/mock/database';
 import { ENV } from '../config/environment';
-import { Session } from '../types/auth';
 
 export async function bootstrapApp(dispatch: AppDispatch): Promise<void> {
   try {
@@ -22,11 +21,7 @@ export async function bootstrapApp(dispatch: AppDispatch): Promise<void> {
     }
 
     // 3. Restore session
-    let restoredSession: Session | null = await credentialService.getSession();
-    if (!restoredSession) {
-      // Fallback to MMKV storage check
-      restoredSession = storageService.get<Session>(STORAGE_KEYS.AUTH_SESSION);
-    }
+    const restoredSession = await authService.restoreSession();
 
     if (restoredSession) {
       dispatch(setSession(restoredSession));

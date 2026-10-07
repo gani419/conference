@@ -1,4 +1,4 @@
-export type BackendMode = 'mock' | 'http';
+export type BackendMode = 'mock' | 'http' | 'supabase';
 export type MediaMode = 'mock' | 'livekit';
 
 export interface EnvironmentConfig {
@@ -12,8 +12,8 @@ export interface EnvironmentConfig {
 }
 
 export const ENV: EnvironmentConfig = {
-  backendMode: 'mock',
-  mediaMode: 'mock',
+  backendMode: 'supabase',
+  mediaMode: 'livekit',
   apiBaseUrl: 'https://api.conference.local',
   mockSimulatedLatencyMs: 300,
   mockFailureRate: 0,

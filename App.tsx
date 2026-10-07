@@ -5,11 +5,26 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { bootstrapApp } from './src/app/bootstrap';
 import { useAppDispatch } from './src/store/hooks';
 import { useResolvedTheme } from './src/hooks/useResolvedTheme';
+import { supabase } from './src/backend/supabaseClient';
+import { appSession } from './src/backend/supabaseModels';
+import { setSession } from './src/store/slices/authSlice';
+import { appApi } from './src/api/appApi';
+import { useBackendSync } from './src/hooks/useBackendSync';
 
 function ConferenceApp() {
   const dispatch = useAppDispatch();
   const { resolved, tokens } = useResolvedTheme();
   const [isReady, setIsReady] = useState(false);
+  useBackendSync();
+
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return;
+      if (event === 'SIGNED_OUT' || event === 'SIGNED_IN') dispatch(appApi.util.resetApiState());
+      dispatch(setSession(session ? appSession(session) : null));
+    });
+    return () => data.subscription.unsubscribe();
+  }, [dispatch]);
 
   useEffect(() => {
     bootstrapApp(dispatch)

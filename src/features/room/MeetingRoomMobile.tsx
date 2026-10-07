@@ -7,6 +7,7 @@ import {
   ScrollView,
   Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMeetingRoomController } from './useMeetingRoomController';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 import { ParticipantTile } from '../../components/meeting/ParticipantTile';
@@ -20,6 +21,7 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
   c,
 ) => {
   const { tokens } = useResolvedTheme();
+  const insets = useSafeAreaInsets();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   // Timer
@@ -172,7 +174,7 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
           c.setActivePanel((prev) => (prev === 'participants' ? 'none' : 'participants'))
         }
         onToggleRaiseHand={c.handleToggleRaiseHand}
-        onLeavePress={c.handleLeaveMeeting}
+        onLeavePress={c.isHostOrCoHost?c.handleEndMeetingForAll:c.handleLeaveMeeting}
         onMuteAll={c.isHostOrCoHost ? c.handleMuteAll : undefined}
         onStopCameras={c.isHostOrCoHost ? c.handleStopAllCameras : undefined}
         onToggleLockEntry={c.isHostOrCoHost ? c.handleToggleLockMeeting : undefined}
@@ -187,12 +189,13 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
         onRequestClose={() => c.setActivePanel('none')}
       >
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalSheet, { backgroundColor: tokens.surface }]}>
+          <View style={[styles.modalSheet, { backgroundColor: tokens.surface, paddingBottom: insets.bottom }]}>
             {c.activePanel === 'chat' && (
               <ChatDrawer
                 messages={c.chatMessages}
                 canChat={c.myPermissions.chat || c.isHostOrCoHost}
                 onSendMessage={c.handleSendMessage}
+                onSendAnnouncement={c.isHostOrCoHost?c.handleSendAnnouncement:undefined}
                 onClose={() => c.setActivePanel('none')}
               />
             )}
@@ -245,7 +248,7 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
                 </View>
                 <RaisedHandsQueue
                   participantsWithHandsRaised={c.raisedHandParticipants}
-                  onLowerHand={(pId) => c.handleMuteParticipant(pId)}
+                  onLowerHand={c.handleLowerHand}
                 />
               </View>
             )}

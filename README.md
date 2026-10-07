@@ -1,60 +1,10 @@
-# 🎥 Host-Controlled Meeting & Live-Streaming Platform
+# Host-Controlled Meeting & Live-Streaming Application
 
-[![React Native](https://img.shields.io/badge/React_Native-0.87.1-61DAFB?logo=react&logoColor=black)](https://reactnative.dev/)
-[![React](https://img.shields.io/badge/React-19.2.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6.0.3_Strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Redux Toolkit](https://img.shields.io/badge/Redux_Toolkit-2.13.0-764ABC?logo=redux&logoColor=white)](https://redux-toolkit.js.org/)
-[![NativeWind](https://img.shields.io/badge/Styling-NativeWind_v4-38B2AC?logo=tailwindcss&logoColor=white)](https://www.nativewind.dev/)
-[![Testing](https://img.shields.io/badge/Tests-Jest_100%25_Passing-brightgreen?logo=jest&logoColor=white)](https://jestjs.io/)
-[![Platform](https://img.shields.io/badge/Platforms-Android_%7C_iOS_%7C_Chromebook-orange)](#form-factor-compositions--theming)
-
-A production-grade, strictly typed React Native application for host-controlled video meetings, interactive webinars, and live streaming. Engineered for seamless cross-platform performance across **Android phones**, **tablets**, **Chromebooks (Android runtime)**, **iPhones**, and **iPads**.
+A production-grade, strictly typed React Native application for host-controlled video meetings and live streaming across Android phones, tablets, Chromebooks running Android apps, iPhones, and iPads.
 
 ---
 
-## 📑 Table of Contents
-1. [Key Capabilities & Architecture](#-key-capabilities--architecture)
-2. [Pinned Version & Environment Matrix](#-pinned-version--environment-matrix)
-3. [Project Structure](#-project-structure)
-4. [Form Factor Compositions & Theming](#-form-factor-compositions--theming)
-5. [Getting Started & Installation](#-getting-started--installation)
-6. [Mock Identities & Credentials](#-mock-identities--credentials)
-7. [Seeded Meetings & Interactive Scenarios](#-seeded-meetings--interactive-scenarios)
-8. [Replaceable Adapters Guide (Mock → Production)](#-replaceable-adapters-guide-mock--production)
-9. [Available Scripts & Quality Verification](#-available-scripts--quality-verification)
-10. [Platform Limitations & Notes](#-platform-limitations--notes)
-
----
-
-## 🚀 Key Capabilities & Architecture
-
-### 🛡️ Host-Controlled Moderation Model
-- **Role Hierarchy**:
-  - **Host**: Complete moderation power (admit/deny participants, mute all, disable video feeds, toggle screen-share permissions, lock room, lower hands, broadcast announcements, end meeting).
-  - **Co-Host**: Granted identical operational privileges as the primary host.
-  - **Participant**: Registered user joining meetings with capability toggles managed by the host.
-  - **Guest**: Ephemeral user joining without registration (display name + avatar selection). Cannot create meetings; joins via meeting code or direct link.
-- **Privacy-First Lobby**:
-  - Microphones automatically muted upon entry.
-  - Local device preview for camera and microphone check.
-  - Host admission workflow with real-time approval/denial push events.
-- **In-Room Moderation**:
-  - Presenter stage grid with active speaker indication and manual participant pinning.
-  - Global Host Actions: **Mute All**, **Disable All Cameras**, **Lock Meeting** (preventing entry), and **Broadcast Announcement**.
-  - Permission queue: In-app permission requests for mic, camera, screen-share, and chat with instant host approval/denial.
-  - Ordered raised hands queue with numbered speaking priority and host lower/invite actions.
-  - In-meeting text chat and broadcast announcement banners.
-- **Meeting Management & Post-Meeting**:
-  - Instant meeting creation (launches immediately).
-  - Scheduled meetings with start time, timezone, guest access toggle, and default permissions.
-  - Multi-method invitee import: Manual input, device contacts picker, and RFC-4180 compliant CSV import (with quoted names, phone/email validation, and duplicate filtering).
-  - Scheduled join eligibility: Joining enabled strictly within 5 minutes of scheduled start time or once live.
-  - Comprehensive meeting summary with attendee roster, joined/left timestamps, and duration.
-  - Notifications center for meeting invites, cancellations, and host requests.
-
----
-
-## 📌 Pinned Version & Environment Matrix
+## 1. Pinned Version & Environment Matrix
 
 | Dependency / Tool | Pinned Version | Notes |
 |---|---|---|
@@ -78,111 +28,62 @@ A production-grade, strictly typed React Native application for host-controlled 
 
 ---
 
-## 📂 Project Structure
+## 2. Key Architecture & Features
 
-```
-Conference/
-├── __tests__/                    # Jest test suites (schemas, csvService, roles, App)
-├── android/                      # Native Android project (SDK 37, Gradle 9.4.1)
-├── ios/                          # Native iOS project (iOS 15.1 target)
-├── src/
-│   ├── api/                      # RTK Query API slice definitions
-│   ├── app/                      # App root providers, Theme provider, Navigation container
-│   ├── backend/                  # Clean architecture backend adapter interface & mock implementation
-│   │   └── mock/                 # In-memory mock backend with scenario controls & seed data
-│   ├── components/               # Reusable UI component library
-│   │   ├── feedback/             # Banners, dialogs, toasts
-│   │   ├── forms/                # Form inputs, buttons, checkboxes
-│   │   ├── layout/               # Screen containers, safe-area wrappers, grid layouts
-│   │   └── meeting/              # Participant tile, controls bar, hand raise item, permission row
-│   ├── config/                   # Environment configuration (mock vs live backend/media)
-│   ├── constants/                # App-wide constants, default permission profiles, role configs
-│   ├── features/                 # Modular feature domains
-│   │   ├── auth/                 # Sign-in, sign-up, guest onboarding, OTP verification
-│   │   ├── dashboard/            # Form-factor aware dashboards (Mobile, Tablet, Chromebook)
-│   │   ├── history/              # Past meeting history and detail reviews
-│   │   ├── invitations/          # Invite management, CSV parsing, contact selection
-│   │   ├── lobby/                # Pre-join lobby, audio/video preview, host approval gate
-│   │   ├── meetings/             # Meeting creation, scheduling, and configuration
-│   │   ├── notifications/        # Invite alerts and permission notifications center
-│   │   ├── room/                 # In-meeting room experience (stage, gallery, moderation sidebars)
-│   │   └── settings/             # User profile, theme switcher (system/light/dark), audio/video preferences
-│   ├── hooks/                    # Custom hooks (form-factor detection, permissions, network state)
-│   ├── navigation/               # React Navigation v7 native stack configuration & routes
-│   ├── schemas/                  # Zod validation schemas for forms, meetings, and users
-│   ├── services/                 # CSV importer (RFC-4180), contact picker, media engine adapters
-│   ├── store/                    # Redux Toolkit store and slices (auth, meeting, room, theme)
-│   ├── styles/                   # NativeWind & theme design tokens
-│   ├── types/                    # Domain models, meeting state types, user role types
-│   └── utils/                    # Date formatting, validators, time-zone helpers
-├── App.tsx                       # Application entry point with Redux & Theme providers
-├── babel.config.js               # Babel configuration with NativeWind & Reanimated plugins
-├── metro.config.js               # Metro bundler with NativeWind integration
-├── package.json                  # Dependencies and execution scripts
-├── tailwind.config.js            # Tailwind theme colors and screen breakpoints
-└── tsconfig.json                 # TypeScript strict compiler configuration
-```
+### Host-Controlled Moderation Model
+- **Roles**:
+  - **Host**: The meeting organizer with full moderation authority.
+  - **Co-Host**: Elevated participant granted identical permissions to the primary host (admit/deny participants, mute all, disable cameras, lock meeting, decide requests).
+  - **Participant**: Registered user joining meetings with selective capability toggles.
+  - **Guest**: Ephemeral user onboarding without registration (display name + avatar selection). Cannot create meetings; joins via meeting code or direct link.
+- **Privacy-First Lobby**:
+  - Microphone broadcasting disabled on entry.
+  - Private local camera preview to check lighting/framing.
+  - Interactive speaker test.
+  - Host admission workflow with real-time push updates.
+- **In-Room Moderation**:
+  - Presenter stage grid with active speaker indication and manual participant pinning.
+  - Granular host controls: **Mute All**, **Disable All Cameras**, **Lock Meeting** (preventing entry), and **Broadcast Announcement**.
+  - Permission queue: In-app permission requests for mic, camera, screen-share, and chat with instant host approval/denial.
+  - Ordered raised hands queue with numbered speaking priority and host lower/invite actions.
+  - In-meeting text chat and broadcast announcement banners.
+- **Meeting Management & Post-Meeting**:
+  - Instant meeting creation (launches immediately).
+  - Scheduled meetings with start time, timezone, guest access toggle, and default permissions.
+  - Multi-method invitee import: Manual input, device contacts picker, and RFC-4180 compliant CSV import (with quoted names, phone/email validation, and duplicate filtering).
+  - Scheduled join eligibility: Joining enabled strictly within 5 minutes of scheduled start time or once live.
+  - Comprehensive meeting summary with attendee roster, joined/left timestamps, and duration.
+  - Notifications center for meeting invites, cancellations, and host requests.
 
 ---
 
-## 💻 Form Factor Compositions & Theming
+## 3. Form Factor Compositions & Theming
 
-The application adapts dynamically to screen geometry and window constraints:
+The application provides dedicated, adaptive layouts responsive to device geometry and window dimensions:
 
-| Device Class | Breakpoint | Composition & UI Adaptations |
-|---|---|---|
-| **Mobile** | `< 600dp` | Single-column stacked layouts, expandable bottom sheets for Chat, Lobby Approvals, Raised Hands, and Permission Requests. Pinned PIP with 2x2 grid paging. |
-| **Tablet** | `600dp - 1023dp` | Split-view dashboard with persistent sidebar navigation, 3x3 participant grid layout with side-drawer moderation panels. |
-| **Chromebook / Desktop** | `≥ 1024dp` | Full expanded desktop layout with fixed navigation rail, 4x4 participant gallery, split moderation & chat panels, and keyboard navigation. |
+1. **Mobile (`< 600dp`)**:
+   - Single-column stacked layouts.
+   - Expandable bottom sheets for Chat, Lobby Approvals, Raised Hands Queue, and Permission Requests.
+   - Pinned participant picture-in-picture with 2x2 grid paging.
+2. **Tablet (`600dp - 1023dp`)**:
+   - Split-view dashboard with persistent sidebar navigation.
+   - 3x3 participant grid layout with side-drawer moderation.
+3. **Chromebook / Desktop (`>= 1024dp`)**:
+   - Full expanded desktop composition.
+   - Fixed side navigation rail, 4x4 participant gallery, and right-hand split moderation and chat panels.
+   - Keyboard accessibility and mouse hover states.
 
-### 🎨 Theme Support
-- **System Default**: Seamlessly follows OS dark/light mode triggers.
-- **Light Theme**: High-contrast, clean surfaces (`#FFFFFF` surface, `#F5F7FB` background, `#4F46E5` primary).
-- **Dark Theme**: Low-glare surfaces (`#0F172A` background, `#1E293B` surface, `#6366F1` primary).
-- Configurable anytime via **Settings → Appearance**.
-
----
-
-## 🛠️ Getting Started & Installation
-
-### Prerequisites
-- **Node.js**: `>= 22.11.0` (LTS recommended)
-- **Package Manager**: `npm`
-- **Android Studio**: Android SDK Platform 37, Build-Tools 36.x, JDK 17
-- **Xcode** (for macOS iOS builds): Version 15+ with CocoaPods
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/gani419/conference.git
-cd conference
-```
-
-### 2. Install Dependencies
-```bash
-npm install
-```
-
-### 3. Start Metro Bundler
-```bash
-npm start
-```
-
-### 4. Run on Android
-```bash
-npm run android
-```
-
-### 5. Run on iOS (macOS required)
-```bash
-bundle exec pod install --project-directory=ios
-npm run ios
-```
+### Theme Modes
+- **System (Default)**: Automatically respects OS-level dark/light mode switches.
+- **Light Theme**: Clean, high-contrast surfaces (`#FFFFFF`, `#F5F7FB`, `#4F46E5` primary).
+- **Dark Theme**: Low-glare surfaces (`#0F172A`, `#1E293B`, `#6366F1` primary).
+- Configurable anytime via **Settings -> Appearance**.
 
 ---
 
-## 👥 Mock Identities & Credentials
+## 4. Mock Identities & Verification Credentials
 
-The pre-seeded mock backend contains ready-to-test accounts:
+The mock backend includes pre-seeded identities ready for immediate sign-in and testing:
 
 | Role | Name | Email | Phone (E.164) | Seed ID |
 |---|---|---|---|---|
@@ -192,13 +93,12 @@ The pre-seeded mock backend contains ready-to-test accounts:
 | **Participant** | Priya Shah | `priya.shah@company.com` | `+14155550103` | `user-participant` |
 | **Guest** | Casey Park | `casey.park@example.com` | `+14155550104` | `user-casey` |
 
-> 🔑 **Credentials**:
-> - **Password**: Any password with at least 8 characters (e.g., `Password123!`).
-> - **OTP Code**: `123456` (universal test bypass code for SMS & Email verification).
+- **Password**: Any password with at least 8 characters (e.g. `Password123!`).
+- **OTP Verification Code**: `123456` (universal bypass code for mock phone and email verification).
 
 ---
 
-## 📅 Seeded Meetings & Interactive Scenarios
+## 5. Seeded Meetings & Scenarios
 
 | Meeting ID | Meeting Code | Status | Title | Description |
 |---|---|---|---|---|
@@ -207,7 +107,10 @@ The pre-seeded mock backend contains ready-to-test accounts:
 | `meet-seed-future` | `PLAN-9932` | `scheduled` | Q4 Engineering All-Hands | Scheduled meeting 2 days out (locked until start window). |
 | `meet-seed-ended` | `RETRO-1102` | `ended` | Sprint 42 Retrospective | Completed meeting with full attendance log for testing Summary screen. |
 
-### Simulating Real-time Events
+---
+
+## 6. Developer Scenario Controls
+
 Interactive scenario controls are exposed programmatically in `src/backend/mock/scenarios.ts` to simulate real-time socket events:
 
 ```typescript
@@ -231,44 +134,83 @@ mockScenarioControls.resetDatabase();
 
 ---
 
-## 🔌 Replaceable Adapters Guide (Mock → Production)
+## 7. Replaceable Adapters Guide (Mock -> Production)
 
-The architecture decouples UI from the backend and media engine. To transition to production servers, update `src/config/environment.ts`:
+The application adheres to clean architecture boundaries. To transition from mock simulations to production infrastructure, edit `src/config/environment.ts`:
 
 ```typescript
 export const ENV = {
-  backendMode: 'http',   // 'mock' | 'http'
-  mediaMode: 'livekit',  // 'mock' | 'livekit'
+  backendMode: 'http',  // Switch from 'mock' to 'http'
+  mediaMode: 'livekit', // Switch from 'mock' to 'livekit'
   apiBaseUrl: 'https://api.yourconference.com/v1',
   liveKitServerUrl: 'wss://livekit.yourconference.com',
 };
 ```
 
-1. **REST / GraphQL Backend Adapter (`src/backend/HttpBackendAdapter.ts`)**:
-   - Implements `BackendAdapter`.
+1. **Backend API (`src/backend/HttpBackendAdapter.ts`)**:
+   - Implements the strict `BackendAdapter` interface.
    - Handles JWT token rotation and standard HTTP REST / GraphQL endpoints.
-2. **Media Engine Adapter (`src/services/mediaService.ts`)**:
-   - Swap `MockMediaEngine` with `@livekit/react-native` or standard WebRTC.
+2. **Media Engine (`src/services/mediaService.ts`)**:
+   - Swap `MockMediaEngine` with `@livekit/react-native` by implementing the `MediaService` adapter.
+   - Screen sharing uses standard foreground services on Android and Broadcast Upload Extensions on iOS.
 3. **Push Notifications (`src/services/notificationService.ts`)**:
    - Register FCM / APNS device tokens with `appApi.endpoints.registerPushToken`.
 
 ---
 
-## 🧪 Available Scripts & Quality Verification
+## 8. Available Commands & Verification
 
-| Command | Purpose |
-|---|---|
-| `npm run typecheck` | Strict TypeScript compilation check (`tsc --noEmit`) |
-| `npm test` | Run Jest test suite across schemas, services, and components |
-| `npm run lint` | ESLint static code analysis |
-| `npm run android` | Launch app on connected Android device or emulator |
-| `npm run ios` | Launch app on iOS Simulator (macOS only) |
-| `npm start` | Start Metro development server |
+### Install Dependencies
+```sh
+npm install
+```
+
+### Type Checking (Strict TypeScript)
+```sh
+npm run typecheck
+```
+*Executes `tsc --noEmit` with zero errors.*
+
+### Unit & Integration Tests
+```sh
+npm test
+```
+*Runs Jest suites covering CSV parsing, schema validation, permission boundaries, and root rendering.*
+
+### ESLint Check
+```sh
+npm run lint
+```
+
+### Run on Android
+```sh
+npm run android
+```
+
+### Run on iOS (macOS / Xcode required)
+```sh
+bundle exec pod install --project-directory=ios
+npm run ios
+```
 
 ---
 
-## ⚠️ Platform Limitations & Notes
+## 9. Implemented vs. Simulated Capabilities
 
-- **iOS Native Builds**: Requires macOS with Xcode and CocoaPods.
-- **Hardware Peripherals**: Camera capture, microphone encoding, and Bluetooth routing are simulated via typed adapters until deployed to physical test devices with a live WebRTC/LiveKit server.
-- **Security**: Auth tokens are stored in hardware-backed secure storage via `react-native-keychain` (Android Keystore / iOS Keychain).
+| Feature | Implementation Status | Notes |
+|---|---|---|
+| Complete UI & Form Factors | ✅ Implemented | Dedicated mobile, tablet, and Chromebook layouts. |
+| Theme System | ✅ Implemented | System default with full Light / Dark theme tokens. |
+| Auth & Ephemeral Guest Flow | ✅ Implemented | KeyStore/Keychain token storage, MMKV caching, guest setup. |
+| Host Moderation Controls | ✅ Implemented | Mute all, stop cameras, lock meeting, admit/deny, lower hand. |
+| Permission Request Workflow | ✅ Implemented | Real-time event-driven permission lifecycle. |
+| CSV & Contact Importer | ✅ Implemented | PapaParse RFC-4180 compliant CSV parser + device contact picker. |
+| Media Tracks | 🔄 Simulated | Mock media engine emits simulated speaking states, audio levels, and camera frames. |
+| Push Notifications | 🔄 Simulated | In-memory notification service with background dispatch triggers. |
+
+---
+
+## 10. Platform Limitations & Unrun Checks
+
+- **iOS Builds**: Pod installation and Xcode native builds require macOS and was not executed in this Windows host environment.
+- **Hardware Peripherals**: Camera capture, microphone encoding, and Bluetooth headset routing are simulated via typed adapters until deployed to physical test devices with LiveKit credentials.

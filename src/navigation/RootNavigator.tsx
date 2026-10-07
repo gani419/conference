@@ -20,6 +20,7 @@ import { MeetingRoomScreen } from '../features/room/MeetingRoomScreen';
 import { MeetingSummaryScreen } from '../features/history/MeetingSummaryScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
+import { JoinLinkScreen } from '../features/lobby/JoinLinkScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -46,6 +47,7 @@ export const RootNavigator: React.FC = () => {
       <Stack.Screen name={ROUTES.EDIT_MEETING} component={EditMeetingScreen} />
       <Stack.Screen name={ROUTES.MEETING_DETAILS} component={MeetingDetailsScreen} />
       <Stack.Screen name={ROUTES.LOBBY} component={LobbyScreen} />
+      <Stack.Screen name={ROUTES.JOIN_LINK} component={JoinLinkScreen} />
       <Stack.Screen name={ROUTES.MEETING_ROOM} component={MeetingRoomScreen} />
       <Stack.Screen name={ROUTES.MEETING_SUMMARY} component={MeetingSummaryScreen} />
       <Stack.Screen name={ROUTES.SETTINGS} component={SettingsScreen} />

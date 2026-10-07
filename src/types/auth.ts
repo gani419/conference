@@ -69,6 +69,7 @@ export interface GuestLoginResponse {
 }
 
 export interface RegisterResponse {
+  session?: Extract<Session, { kind: 'registered' }>;
   user: RegisteredUser;
   verificationId: string;
   verificationExpiresAt: ISODateTime;
