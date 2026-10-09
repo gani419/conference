@@ -17,9 +17,18 @@ const desired = {
   external_phone_enabled: false,
   password_min_length: 8,
   site_url: values.WEB_ORIGIN || 'http://localhost:5173',
-  uri_allow_list: `${
-    values.WEB_ORIGIN || 'http://localhost:5173'
-  }/auth/callback,conference://auth/callback`,
+  uri_allow_list: [
+    ...new Set([
+      values.WEB_ORIGIN || 'http://localhost:5173',
+      ...(values.WEB_ADDITIONAL_ORIGINS || '')
+        .split(',')
+        .map(value => value.trim())
+        .filter(Boolean),
+    ]),
+  ]
+    .map(origin => `${origin}/auth/callback`)
+    .concat('conference://auth/callback')
+    .join(','),
 };
 const headers = {
   Authorization: `Bearer ${values.SUPABASE_ACCESS_TOKEN}`,

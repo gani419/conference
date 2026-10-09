@@ -1,8 +1,8 @@
 # Free Firebase Hosting deployment
 
-Live site: **https://conference-79cf2.web.app**. Project ID is stored in root `.env`. Billing was verified disabled before the Hosting-only release.
+Live site: **https://meet-conference.web.app**. Project ID is stored in root `.env`. Billing was verified disabled before the Hosting-only release.
 
-Use **Firebase Hosting** with the **Spark** plan for the Conference static React/Vite website. Existing Supabase and LiveKit services continue providing the backend and calls. No Firebase client SDK, Firebase Auth, Firestore, Cloud Functions, or App Hosting is needed.
+Use **Firebase Hosting** with the **Spark** plan for the Conference static React/Vite website. Existing Supabase and LiveKit services continue providing the backend and calls. Firebase Messaging provides push notifications. Firebase Auth, Firestore, Cloud Functions, and App Hosting are not used.
 
 ## Google account setup
 
@@ -30,10 +30,13 @@ Add the chosen Project ID and public website origin to the ignored root `.env`. 
 
 ```dotenv
 FIREBASE_PROJECT_ID=your-project-id
-WEB_ORIGIN=https://your-project-id.web.app
+FIREBASE_HOSTING_SITE_ID=your-hosting-site-id
+FIREBASE_HOSTING_LEGACY_SITE_ID=your-project-id
+WEB_ORIGIN=https://your-hosting-site-id.web.app
+WEB_ADDITIONAL_ORIGINS=https://your-project-id.web.app
 ```
 
-Keep all existing Supabase/LiveKit values. `FIREBASE_PROJECT_ID` is the deployment target and is not exported to the browser.
+Keep all existing Supabase/LiveKit values. `FIREBASE_PROJECT_ID` selects the project. Hosting site IDs select the primary and optional legacy sites; they remain in root `.env`. Public Firebase project configuration is included in the browser.
 
 Apply the public origin to the existing hosted backend:
 
@@ -42,7 +45,7 @@ node backend/scripts/upload-secrets.mjs
 node backend/scripts/configure-auth.mjs
 ```
 
-These commands use the existing root Supabase access token. Auth configuration preserves this application's selected policy: email/password without confirmation, anonymous guests, and no phone login. The upload script also synchronizes the existing backend secrets, so root values must be current. The backend currently permits one exact browser origin: after this change, use the published site for browser API calls; native mobile calls are unaffected. Supporting local and public browser origins concurrently requires a separate backend change.
+These commands use the existing root Supabase access token. Auth configuration preserves this application's selected policy: email/password without confirmation, anonymous guests, and no phone login. The upload script also synchronizes the existing backend secrets, so root values must be current. The backend permits `WEB_ORIGIN` plus the exact comma-separated origins in `WEB_ADDITIONAL_ORIGINS`. It rejects other origins. Native mobile calls are unaffected. Redeploy Edge Functions after changing the CORS code.
 
 ## Deploy
 
@@ -55,7 +58,7 @@ npm.cmd run web:deploy
 The command reads the Firebase Project ID from root `.env`, runs Firebase Hosting only, and triggers a fresh web build with the private-credential scan. The free public HTTPS URL is:
 
 ```text
-https://your-project-id.web.app
+https://your-hosting-site-id.web.app
 ```
 
 Share that URL with the client after checking login, guest access, invitation refresh, admission, camera/microphone, screen sharing, and the ongoing Android interoperability test. Firebase Hosting transfer quotas cover web files; Supabase and LiveKit usage retain their separate plan limits. On Spark, excess hosting transfer can disable the website until the next monthly reset rather than create a paid overage.
@@ -67,3 +70,6 @@ Share that URL with the client after checking login, guest access, invitation re
 - Hosting quotas: https://firebase.google.com/docs/hosting/usage-quotas-pricing
 
 The first Hosting release is published. Future releases use `npm.cmd run web:deploy` after changes and appropriate checks. Backend CORS currently permits the public web.app origin.
+## Shorter address
+
+Primary: https://meet-conference.web.app. Legacy: https://conference-79cf2.web.app. The default Firebase site cannot be renamed; the shorter name is an additional site in the same project. Both serve the same build. The deployment script creates a temporary ignored CLI configuration from root `.env`, then removes it after deployment. All sites share project Hosting quotas.

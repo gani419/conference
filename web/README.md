@@ -1,6 +1,6 @@
 # Conference web
 
-Public demo: **https://conference-79cf2.web.app** ? Firebase Hosting, Spark (billing disabled). The backend browser origin is configured for this URL.
+Public demo: **https://meet-conference.web.app** - Firebase Hosting, Spark (billing disabled). The backend browser origin is configured for this URL.
 
 Phase 3 is a React + Vite browser application that uses the same Supabase Conference project and LiveKit Cloud rooms as Android. The backend adapter is isolated in `src/backend/`, so a later Django migration can implement the same client contract.
 
@@ -13,7 +13,7 @@ npm.cmd --prefix web ci
 npm.cmd run web
 ```
 
-Open **http://localhost:5173** for local UI development in Chrome or Edge. Use **https://conference-79cf2.web.app** for backend-connected browser testing; the current backend accepts that one public browser origin. Email/password accounts are shared with mobile. Guests receive real Supabase anonymous sessions. Open a copied web invitation or enter the meeting code to join the lobby. The host must admit attendees before they can connect to media.
+Open **http://localhost:5173** for local UI development in Chrome or Edge. Use **https://meet-conference.web.app** for backend-connected browser testing; the current backend accepts the primary and legacy public browser origins. Email/password accounts are shared with mobile. Guests receive real Supabase anonymous sessions. Open a copied web invitation or enter the meeting code to join the lobby. The host must admit attendees before they can connect to media.
 
 Root `.env` remains the source of configuration. Startup/build generates ignored `web/.env` using an explicit allowlist: Supabase project ID, URL, publishable key, and LiveKit URL. Supabase access tokens, service credentials, and LiveKit API keys/secrets stay on the backend. Browser permissions require HTTPS or localhost. Do not expose the development server publicly.
 
@@ -41,7 +41,7 @@ The hosted test is opt-in and needs a valid `SUPABASE_ACCESS_TOKEN` in root `.en
 
 ```powershell
 $env:CONFERENCE_HOSTED_TEST='1'
-$env:CONFERENCE_TEST_BASE_URL='https://conference-79cf2.web.app'
+$env:CONFERENCE_TEST_BASE_URL='https://meet-conference.web.app'
 npm.cmd run web:test
 Remove-Item Env:CONFERENCE_HOSTED_TEST
 Remove-Item Env:CONFERENCE_TEST_BASE_URL
@@ -53,9 +53,11 @@ Verified on this PC against the public Firebase HTTPS site: email/password and g
 
 ## Publish later
 
-Deploy `web/dist` to an HTTPS static host with an SPA fallback to `index.html`. Set root `WEB_ORIGIN` to the exact deployed origin, upload that backend secret using the existing backend script, and configure Supabase Auth site/redirect URLs for that origin. The current backend CORS origin is https://conference-79cf2.web.app; opening a different origin requires configuration. Rebuild whenever public root configuration changes. LiveKit signing credentials stay in Supabase Edge Functions.
+Deploy `web/dist` to an HTTPS static host with an SPA fallback to `index.html`. Set root `WEB_ORIGIN` to the exact deployed origin, upload that backend secret using the existing backend script, and configure Supabase Auth site/redirect URLs for that origin. The current backend CORS origin is https://meet-conference.web.app; opening a different origin requires configuration. Rebuild whenever public root configuration changes. LiveKit signing credentials stay in Supabase Edge Functions.
 
-Firebase Hosting deployment is live at https://conference-79cf2.web.app. A custom domain is optional and has not been configured. This phase does not migrate the backend to Django.
+Firebase Hosting deployment is live at https://meet-conference.web.app. A custom domain is optional and has not been configured. This phase does not migrate the backend to Django.
 For the free Firebase Spark deployment procedure, see [Firebase Hosting steps](FIREBASE_HOSTING.md). Root `firebase.json` and `npm.cmd run web:deploy` are prepared; the Firebase target stays in root `.env`.
 
 Firebase invitation push: registered users can enable notifications in the header. See [configuration and verification](../FIREBASE_PUSH.md).
+
+The shorter primary address is https://meet-conference.web.app. The original https://conference-79cf2.web.app remains a working alias. Hosting site IDs are configured in root `.env`; `npm run web:deploy` deploys both sites.

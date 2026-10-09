@@ -1,6 +1,6 @@
 # Email verification
 
-Status (9 October 2026): app implementation complete; updated web deployed to https://conference-79cf2.web.app and Android APK installed on the connected phone. Email verification activation and Gmail app-password setup are deferred at the user's request. Hosted email confirmation remains off; email/password registration and guest access continue to work. Phone verification remains disabled. The code and setup instructions are retained for later activation.
+Status (9 October 2026): app implementation complete; updated web deployed to https://meet-conference.web.app and Android APK installed on the connected phone. Email verification activation and Gmail app-password setup are deferred at the user's request. Hosted email confirmation remains off; email/password registration and guest access continue to work. Phone verification remains disabled. The code and setup instructions are retained for later activation.
 
 Validation: 38 native regression tests passed across the full suite and added screen tests; 12 browser regression tests passed (two opt-in hosted tests skipped), plus three verification UI checks against the deployed site with intercepted responses. TypeScript and Android/web builds passed. An isolated confirmed test fixture authenticated, then its session was revoked and the account deleted. None of these checks establishes actual Gmail delivery.
 
