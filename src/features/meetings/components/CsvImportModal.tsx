@@ -1,3 +1,4 @@
+import { feedback } from '../../../services/feedback';
 import React, { useState, useMemo } from 'react';
 import {
   View,
@@ -5,8 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  Alert,
-} from 'react-native';
+  } from 'react-native';
 import { ModalDialog } from '../../../components/layout/ModalDialog';
 import { AppButton } from '../../../components/forms/AppButton';
 import { InviteeDraft } from '../../../types/csv';
@@ -53,7 +53,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
       if (!file || !file.content) return;
       processCsvText(file.content);
     } catch {
-      Alert.alert('Error', 'Failed to pick CSV file');
+      feedback.alert('Error', 'Failed to pick CSV file');
     }
   };
 
@@ -99,12 +99,12 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
         displayName: d.displayName,
         role: d.role,
         ...(d.email ? { email: d.email } : {}),
-        ...(d.phoneE164 ? { phoneE164: d.phoneE164 } : {}),
+
       });
     }
 
     if (results.length === 0) {
-      Alert.alert('No New Invitees', 'All valid invitees from this file are already in the list.');
+      feedback.alert('No New Invitees', 'All valid invitees from this file are already in the list.');
       return;
     }
 
@@ -130,17 +130,18 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
       testID="csv-import-modal"
     >
       <View style={styles.container}>
+        <Text style={{ color: tokens.textMuted }}>CSV needs display_name and email. Role can be guest or co_host.</Text>
         <View style={styles.pickerActions}>
           <View style={styles.actionBtnWrap}>
             <AppButton
-              title="📂 Choose File"
+              title="Choose file" icon="file-up"
               onPress={handlePickFile}
               variant="secondary"
             />
           </View>
           <View style={styles.actionBtnWrap}>
             <AppButton
-              title="📝 Load Sample"
+              title="Load sample" icon="file"
               onPress={handleLoadSample}
               variant="ghost"
             />
@@ -280,6 +281,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
+    flexShrink: 1,
     gap: 12,
     maxHeight: 500,
   },

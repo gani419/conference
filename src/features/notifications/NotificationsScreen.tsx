@@ -67,7 +67,7 @@ export const NotificationsScreen: React.FC = () => {
         </View>
       ) : notifications.length === 0 ? (
         <EmptyState
-          icon="🔔"
+          icon="bell"
           title="No Notifications"
           description="You're all caught up! Meeting invites and updates will appear here."
         />

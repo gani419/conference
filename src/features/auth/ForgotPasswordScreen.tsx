@@ -1,5 +1,7 @@
+import { feedback } from '../../services/feedback';
+import { AppIcon } from '../../components/icons/AppIcon';
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 import { ROUTES } from '../../constants/routes';
@@ -38,7 +40,7 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
     setLoading(false);
 
     if (res.success) {
-      Alert.alert(
+      feedback.alert(
         'Recovery Link Sent',
         `A recovery link has been dispatched to ${res.data.maskedDestination}. Proceeding to reset password screen.`,
         [
@@ -52,14 +54,14 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
       );
     } else {
       setError(res.error.message);
-      Alert.alert('Recovery Request Failed', res.error.message);
+      feedback.alert('Recovery Request Failed', res.error.message);
     }
   };
 
   const renderForm = (): React.ReactElement => (
     <View style={[styles.formCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-        <Text style={[styles.backIcon, { color: tokens.textMain }]}>‹</Text>
+        <AppIcon style={[styles.backIcon, { color: tokens.textMain }]} name="chevron-left" />
       </TouchableOpacity>
 
       <Text style={[styles.heading, { color: tokens.textMain }]}>Reset your password</Text>
@@ -69,7 +71,7 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 
       <AppInput
         label="Email or mobile number"
-        icon="✉️"
+        icon="mail"
         placeholder="alex@company.com or +14155550100"
         value={identifier}
         onChangeText={setIdentifier}
@@ -89,7 +91,7 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderSideIllustration = (): React.ReactElement => (
     <View style={[styles.illustrationCard, { backgroundColor: tokens.primaryLight }]}>
-      <Text style={styles.illustrationEmoji}>🔐</Text>
+      <AppIcon style={styles.illustrationEmoji} name="shield-check" />
       <Text style={[styles.illustrationTitle, { color: tokens.primary }]}>
         Account Recovery
       </Text>

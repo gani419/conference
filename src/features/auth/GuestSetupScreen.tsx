@@ -1,5 +1,7 @@
+import { feedback } from '../../services/feedback';
+import { AppIcon } from '../../components/icons/AppIcon';
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 import { ROUTES } from '../../constants/routes';
@@ -61,14 +63,14 @@ export const GuestSetupScreen: React.FC<Props> = ({ navigation, route }) => {
       }
     } else {
       setError(res.error.message);
-      Alert.alert('Guest Setup Failed', res.error.message);
+      feedback.alert('Guest Setup Failed', res.error.message);
     }
   };
 
   const renderForm = (): React.ReactElement => (
     <View style={[styles.formCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-        <Text style={[styles.backIcon, { color: tokens.textMain }]}>‹</Text>
+        <AppIcon style={[styles.backIcon, { color: tokens.textMain }]} name="chevron-left" />
       </TouchableOpacity>
 
       <Text style={[styles.heading, { color: tokens.textMain }]}>Join as a guest</Text>
@@ -78,7 +80,7 @@ export const GuestSetupScreen: React.FC<Props> = ({ navigation, route }) => {
 
       <AppInput
         label="Your name"
-        icon="👤"
+        icon="user"
         placeholder="e.g. Alex Rivera"
         value={displayName}
         onChangeText={setDisplayName}
@@ -98,7 +100,7 @@ export const GuestSetupScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const renderSideIllustration = (): React.ReactElement => (
     <View style={[styles.illustrationCard, { backgroundColor: tokens.primaryLight }]}>
-      <Text style={styles.illustrationEmoji}>👋</Text>
+      <AppIcon style={styles.illustrationEmoji} name="hand" />
       <Text style={[styles.illustrationTitle, { color: tokens.primary }]}>
         Everyone has a voice
       </Text>

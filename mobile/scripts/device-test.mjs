@@ -1,3 +1,4 @@
+import { createConfirmedTestAccount } from '../../backend/scripts/test-accounts.mjs';
 // Development-only Android integration checks. Test credentials remain in an ignored .env.
 import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -47,7 +48,7 @@ if (action === 'setup') {
   state.password = randomBytes(24).toString('base64url');
   state.hostName = `DeviceHost${tag}`;
   state.guestName = `DeviceGuest${tag}`;
-  state.host = await api('auth/v1/signup', { email: state.email, password: state.password, data: { displayName: state.hostName, avatarId: 'avatar-1' } });
+  state.host = await createConfirmedTestAccount(env, { email: state.email, password: state.password, displayName: state.hostName }, id => { state.host = { user: { id } }; save(); });
   save();
   if (!state.host.access_token) throw new Error('Signup did not produce an immediate session');
   state.meeting = await command('create_meeting', { title: `Device call check ${tag}`, description: 'Temporary device integration check', timing: { kind: 'instant' }, guestAccess: true,
@@ -92,7 +93,7 @@ if (action === 'setup') {
     const meeting = await command('meeting_details', { meetingId: state.meeting.id }, 'read');
     if (meeting.status === 'live') await command('end_meeting', { meetingId: state.meeting.id });
   }
-  await api('auth/v1/logout?scope=global', undefined, state.host.access_token);
+  if (state.host.access_token) await api('auth/v1/logout?scope=global', undefined, state.host.access_token);
   const id = state.host.user.id;
   if (!/^[0-9a-f-]{36}$/i.test(id) || (state.meeting && !/^[0-9a-f-]{36}$/i.test(state.meeting.id))) throw new Error('Invalid test identifiers');
   const query = `${state.meeting ? `delete from public.meetings where id='${state.meeting.id}'::uuid;` : ''} delete from auth.users where id='${id}'::uuid;`;

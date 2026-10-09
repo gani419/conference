@@ -214,3 +214,11 @@ npm run ios
 
 - **iOS Builds**: Pod installation and Xcode native builds require macOS and was not executed in this Windows host environment.
 - **Hardware Peripherals**: Camera capture, microphone encoding, and Bluetooth headset routing are simulated via typed adapters until deployed to physical test devices with LiveKit credentials.
+
+## Web application (Phase 3)
+
+The browser application is in `web/` and shares the deployed Supabase backend and LiveKit Cloud meetings with mobile. Run `npm.cmd --prefix web ci` once, then `npm.cmd run web`, and open http://localhost:5173. Build with `npm.cmd run web:build`. See [web setup, features, verification, and deployment](web/README.md). Root `.env` supplies generated public-only client configuration; private credentials remain on the backend.
+
+Public client demo: **https://conference-79cf2.web.app**, hosted on Firebase Spark. Use this URL for backend-connected browser tests; local Vite remains available for UI development, but current backend CORS permits the public origin.
+
+Firebase invitation notifications: [setup and verification](FIREBASE_PUSH.md).

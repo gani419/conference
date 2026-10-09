@@ -16,7 +16,7 @@ if (Object.keys(browser).some(key => !allowed.has(key)))
   throw Error('Unexpected key in generated browser environment.');
 const privateValues = Object.entries(values).filter(
   ([key, value]) =>
-    /SECRET|TOKEN|PASSWORD|PRIVATE|SERVICE_ROLE|DATABASE_URL|RESEND_API_KEY|LIVEKIT_API_KEY|FCM_SERVICE_ACCOUNT/i.test(
+    /SECRET|TOKEN|PASSWORD|PRIVATE|SERVICE_ROLE|DATABASE_URL|RESEND_API_KEY|LIVEKIT_API_KEY|FCM_SERVICE_ACCOUNT|SMTP_PASS/i.test(
       key,
     ) && value.length >= 8,
 );

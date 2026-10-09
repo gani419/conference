@@ -1,3 +1,6 @@
+import { FeedbackHost } from './src/components/feedback/FeedbackHost';
+import { AppIcon } from './src/components/icons/AppIcon';
+import { usePushNotifications } from './src/hooks/usePushNotifications';
 import React, { useEffect, useState } from 'react';
 import { StatusBar, View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { AppProviders } from './src/app/AppProviders';
@@ -16,6 +19,7 @@ function ConferenceApp() {
   const { resolved, tokens } = useResolvedTheme();
   const [isReady, setIsReady] = useState(false);
   useBackendSync();
+  usePushNotifications(isReady);
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
@@ -37,7 +41,7 @@ function ConferenceApp() {
     return (
       <View style={[styles.splashContainer, { backgroundColor: tokens.surface }]}>
         <View style={[styles.splashIconWrap, { backgroundColor: tokens.primarySurface }]}>
-          <Text style={styles.splashIcon}>🎥</Text>
+          <AppIcon style={styles.splashIcon} name="video" />
         </View>
         <Text style={[styles.splashTitle, { color: tokens.textMain }]}>Conference</Text>
         <Text style={[styles.splashSub, { color: tokens.textMuted }]}>
@@ -62,6 +66,7 @@ export default function App() {
   return (
     <AppProviders>
       <ConferenceApp />
+      <FeedbackHost />
     </AppProviders>
   );
 }

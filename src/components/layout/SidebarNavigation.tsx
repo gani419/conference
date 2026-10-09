@@ -1,3 +1,4 @@
+import { AppIcon } from '../icons/AppIcon';
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -19,10 +20,10 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ currentRou
   const avatarDef = getAvatarDefinition(session?.user.avatarId);
 
   const navItems = [
-    { label: 'Dashboard', icon: '🏠', route: ROUTES.HOME },
-    { label: 'Meetings', icon: '📅', route: ROUTES.CREATE_MEETING, hideForGuest: true },
-    { label: 'Notifications', icon: '🔔', route: ROUTES.NOTIFICATIONS },
-    { label: 'Settings', icon: '⚙️', route: ROUTES.SETTINGS },
+    { label: 'Dashboard', icon: "house", route: ROUTES.HOME },
+    { label: 'Meetings', icon: "calendar", route: ROUTES.CREATE_MEETING, hideForGuest: true },
+    { label: 'Notifications', icon: "bell", route: ROUTES.NOTIFICATIONS },
+    { label: 'Settings', icon: "settings", route: ROUTES.SETTINGS },
   ];
 
   return (
@@ -76,7 +77,7 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ currentRou
               accessibilityRole="button"
               accessibilityState={{ selected: isActive }}
             >
-              <Text style={styles.navIcon}>{item.icon}</Text>
+              <AppIcon style={styles.navIcon} name={item.icon} color={isActive ? tokens.primary : tokens.textMuted} />
               <Text
                 style={[
                   styles.navLabel,
@@ -100,9 +101,7 @@ export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ currentRou
           style={[styles.userFooter, { borderTopColor: tokens.border }]}
         >
           <View style={[styles.avatarCircle, { backgroundColor: avatarDef.backgroundColor }]}>
-            <Text style={[styles.avatarInitials, { color: avatarDef.textColor }]}>
-              {avatarDef.initials}
-            </Text>
+            <AppIcon name="user" color={avatarDef.textColor} size={24} />
           </View>
           <View style={styles.userInfo}>
             <Text style={[styles.userName, { color: tokens.textMain }]} numberOfLines={1}>

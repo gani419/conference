@@ -1,3 +1,4 @@
+import { AppIcon } from '../icons/AppIcon';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MeetingParticipant } from '../../types/participant';
@@ -43,7 +44,7 @@ export const ParticipantTile: React.FC<ParticipantTileProps> = ({
           style={[styles.pinBadge, { backgroundColor: isPinned ? tokens.primary : 'rgba(0,0,0,0.5)' }]}
           accessibilityLabel={isPinned ? 'Unpin participant' : 'Pin participant'}
         >
-          <Text style={styles.pinIcon}>{isPinned ? '📌' : '📍'}</Text>
+          <AppIcon style={styles.pinIcon} name={isPinned ? 'pin' : 'pin-off'} />
         </TouchableOpacity>
       )}
       {/* Video preview / Avatar Fallback */}
@@ -55,16 +56,14 @@ export const ParticipantTile: React.FC<ParticipantTileProps> = ({
           },
         ]}
       >
-        <Text style={[styles.avatarText, { color: avatarDef.textColor }]}>
-          {avatarDef.initials}
-        </Text>
+        <AppIcon name="user" color={avatarDef.textColor} size={44} />
       </View>
 
       {/* Hand Raised Badge */}
       <LiveVideo userId={participant.userId} />
       {participant.media.isHandRaised && (
         <View style={styles.handBadge}>
-          <Text style={styles.handIcon}>✋</Text>
+          <AppIcon style={styles.handIcon} name="hand" />
         </View>
       )}
 
@@ -79,9 +78,7 @@ export const ParticipantTile: React.FC<ParticipantTileProps> = ({
           {participant.role === 'co_host' && <Text style={styles.roleTag}>Co-host</Text>}
         </View>
         <View style={styles.micBadge}>
-          <Text style={styles.micIcon}>
-            {participant.media.isMuted ? '🔇' : '🎙️'}
-          </Text>
+          <AppIcon style={styles.micIcon} name={participant.media.isMuted ? 'mic-off' : 'mic'} />
         </View>
       </View>
     </View>

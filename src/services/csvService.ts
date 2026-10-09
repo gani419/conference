@@ -1,3 +1,4 @@
+import { emailRegex } from '../schemas/authSchemas';
 import Papa from 'papaparse';
 import { CsvImportResult, InviteeDraft, RawCsvRow } from '../types/csv';
 import { normalizeRole } from '../schemas/csvSchemas';
@@ -54,8 +55,8 @@ export const csvService = {
         malformedCount++;
       }
 
-      if (!normalizedEmail && !normalizedPhone) {
-        rowErrors.contact = 'At least one phone or email is required';
+      if (!normalizedEmail || !emailRegex.test(normalizedEmail)) {
+        rowErrors.contact = 'A valid email address is required';
         malformedCount++;
       }
 

@@ -1,3 +1,4 @@
+import { deliverInvitationPush } from '../_shared/push.ts';
 import { adminClient, endpoint, env, HttpError } from '../_shared/client.ts';
 import { rooms, mediaPermission, type Permissions } from '../_shared/media.ts';
 
@@ -25,7 +26,9 @@ Deno.serve(endpoint(async request => {
   let failed = 0;
   for (const job of jobs || []) {
     try {
-      if (job.kind === 'invitation_email') {
+      if (job.kind === 'invitation_push') {
+        await deliverInvitationPush(client, job.payload.notificationId);
+      } else if (job.kind === 'invitation_email') {
         const { data: invite, error: inviteError } = await client.from('invitations').select('status,email').eq('id', job.payload.invitationId).maybeSingle();
         if (inviteError) throw inviteError;
         if (invite?.status === 'pending') {
@@ -37,7 +40,7 @@ Deno.serve(endpoint(async request => {
           });
           if (!response.ok) throw new Error('Email delivery failed');
         }
-      } else {
+      } else if (['media_sync', 'media_remove', 'media_close'].includes(job.kind)) {
         const service = rooms();
         const { data: meeting, error: meetingError } = await client.from('meetings').select('status').eq('id', job.meeting_id).maybeSingle();
         if (meetingError) throw meetingError;
@@ -49,7 +52,7 @@ Deno.serve(endpoint(async request => {
           let connected: Awaited<ReturnType<typeof service.listParticipants>>;
           try { connected = await service.listParticipants(job.meeting_id); } catch (error) { if (!notFound(error)) throw error; connected = []; }
           for (const remote of connected) {
-            const participant = participants?.find(p => p.user_id === remote.identity);
+            const participant = participants?.find((p: { user_id: string; status: string; permissions: Permissions }) => p.user_id === remote.identity);
             try {
               if (!participant || participant.status !== 'in_meeting') await service.removeParticipant(job.meeting_id, remote.identity);
               else await service.updateParticipant(job.meeting_id, remote.identity, { permission: mediaPermission(participant.permissions as Permissions) });
@@ -57,6 +60,7 @@ Deno.serve(endpoint(async request => {
           }
         }
       }
+      if (!['invitation_push', 'invitation_email', 'media_sync', 'media_remove', 'media_close'].includes(job.kind)) throw new Error('Unsupported job');
       const { error: ackError } = await client.rpc('complete_backend_job', { job_id: job.id, attempt: job.attempts });
       if (ackError) throw ackError;
       delivered++;

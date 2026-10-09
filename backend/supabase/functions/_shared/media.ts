@@ -22,8 +22,8 @@ export function rooms() {
   return new RoomServiceClient(env('LIVEKIT_URL').replace(/^wss:/, 'https:').replace(/^ws:/, 'http:'), env('LIVEKIT_API_KEY'), env('LIVEKIT_API_SECRET'));
 }
 
-export async function roomToken(meetingId: string, userId: string, displayName: string, permissions: Permissions) {
-  const token = new AccessToken(env('LIVEKIT_API_KEY'), env('LIVEKIT_API_SECRET'), { identity: userId, name: displayName, ttl: 60 });
+export async function roomToken(meetingId: string, userId: string, displayName: string, permissions: Permissions, ttl = 60) {
+  const token = new AccessToken(env('LIVEKIT_API_KEY'), env('LIVEKIT_API_SECRET'), { identity: userId, name: displayName, ttl });
   token.addGrant({ room: meetingId, roomJoin: true, ...mediaPermission(permissions) });
-  return { token: await token.toJwt(), serverUrl: env('LIVEKIT_URL'), expiresIn: 60 };
+  return { token: await token.toJwt(), serverUrl: env('LIVEKIT_URL'), expiresIn: ttl };
 }

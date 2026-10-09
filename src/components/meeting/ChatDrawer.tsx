@@ -1,3 +1,5 @@
+import { feedback } from '../../services/feedback';
+import { AppIcon } from '../icons/AppIcon';
 import React, { useState } from 'react';
 import {
   View,
@@ -8,8 +10,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
-} from 'react-native';
+  } from 'react-native';
 import { ChatMessage } from '../../types/chat';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 import { getAvatarDefinition } from '../../constants/avatars';
@@ -43,7 +44,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
         : onSendMessage(inputText.trim()));
       if (result !== false) setInputText('');
     } catch {
-      Alert.alert('Message not sent', 'Please try sending your message again.');
+      feedback.alert('Message not sent', 'Please try sending your message again.');
     } finally {
       setSending(false);
     }
@@ -77,9 +78,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
         )}
         {onClose && (
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Text style={[styles.closeText, { color: tokens.textMuted }]}>
-              ✕
-            </Text>
+            <AppIcon style={[styles.closeText, { color: tokens.textMuted }]} name="x" />
           </TouchableOpacity>
         )}
       </View>
@@ -114,7 +113,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                   ]}
                 >
                   <View style={styles.announcementHeader}>
-                    <Text style={styles.announcementIcon}>📢</Text>
+                    <AppIcon style={styles.announcementIcon} name="megaphone" />
                     <Text
                       style={[
                         styles.announcementTitle,
@@ -203,7 +202,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
             { backgroundColor: tokens.surfaceSubtle },
           ]}
         >
-          <Text style={styles.lockIcon}>🔒</Text>
+          <AppIcon style={styles.lockIcon} name="lock" />
           <Text style={[styles.disabledText, { color: tokens.textMuted }]}>
             Chat is not available. The host has disabled chat for attendees.
           </Text>
@@ -239,7 +238,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
               },
             ]}
           >
-            <Text style={styles.sendIcon}>➤</Text>
+            <AppIcon style={styles.sendIcon} name="send" />
           </TouchableOpacity>
         </View>
       )}

@@ -1,3 +1,5 @@
+import { AppIcon } from '../../components/icons/AppIcon';
+import { feedback } from '../../services/feedback';
 import React, { useState } from 'react';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
@@ -6,7 +8,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -26,31 +27,44 @@ import { useAppSelector } from '../../store/hooks';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 import { shareService } from '../../services/shareService';
 
-type MeetingDetailsRouteProp = RouteProp<RootStackParamList, typeof ROUTES.MEETING_DETAILS>;
+type MeetingDetailsRouteProp = RouteProp<
+  RootStackParamList,
+  typeof ROUTES.MEETING_DETAILS
+>;
 
 export const MeetingDetailsScreen: React.FC = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<MeetingDetailsRouteProp>();
   const { meetingId } = route.params;
   const { tokens } = useResolvedTheme();
 
-  const session = useAppSelector((state) => state.auth.session);
+  const session = useAppSelector(state => state.auth.session);
   const currentUserId = session?.user.id;
 
   const {
     data: meeting,
     isLoading,
+    error,
     refetch,
-  } = useGetMeetingQuery({ meetingId }, { skip: !meetingId });
+  } = useGetMeetingQuery({ meetingId }, { skip: !meetingId, pollingInterval: 3000 });
 
-  const {data:participants=[]}=useGetParticipantsQuery(meetingId,{skip:!session});
-  const [cancelMeeting, { isLoading: isCancelling }] = useCancelMeetingMutation();
+  const { data: participants = [] } = useGetParticipantsQuery(meetingId, {
+    skip: !session, pollingInterval: 3000,
+  });
+  const [cancelMeeting, { isLoading: isCancelling }] =
+    useCancelMeetingMutation();
   const [copiedNotice, setCopiedNotice] = useState<string | null>(null);
 
+  if (error) return <ScreenContainer><HeaderBar title="Meeting details" showBack onBack={() => navigation.goBack()} /><Text style={{ color: tokens.danger }}>This meeting could not be opened. It may be expired or unavailable to your account.</Text><AppButton title="Retry" onPress={refetch} /></ScreenContainer>;
   if (isLoading || !meeting) {
     return (
       <ScreenContainer scrollable={false} padded={false}>
-        <HeaderBar title="Meeting Details" showBack onBack={() => navigation.goBack()} />
+        <HeaderBar
+          title="Meeting Details"
+          showBack
+          onBack={() => navigation.goBack()}
+        />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={tokens.primary} />
           <Text style={[styles.loadingText, { color: tokens.textMuted }]}>
@@ -62,11 +76,19 @@ export const MeetingDetailsScreen: React.FC = () => {
   }
 
   const isHost = (meeting.hostId ?? meeting.organizerId) === currentUserId;
-  const isCoHost = participants.some(p=>p.userId===currentUserId&&p.role==='co_host'&&p.status==='in_meeting');
+  const isCoHost = participants.some(
+    p =>
+      p.userId === currentUserId &&
+      p.role === 'co_host' &&
+      p.status === 'in_meeting',
+  );
   const hasHostPrivileges = isHost || isCoHost;
 
   const isScheduled = meeting.timing.kind === 'scheduled';
-  const startsAt = meeting.timing.kind === 'scheduled' ? meeting.timing.startsAt : meeting.scheduledStartTime;
+  const startsAt =
+    meeting.timing.kind === 'scheduled'
+      ? meeting.timing.startsAt
+      : meeting.scheduledStartTime;
   const scheduledTimeStr = isScheduled
     ? new Date(startsAt).toLocaleString()
     : 'Instant';
@@ -74,7 +96,8 @@ export const MeetingDetailsScreen: React.FC = () => {
   const now = new Date();
   const startsAtDate = isScheduled ? new Date(startsAt) : now;
   const isEligibleToJoin =
-    meeting.status === 'live' || (isScheduled && startsAtDate.getTime() <= now.getTime() + 5 * 60 * 1000);
+    meeting.status === 'live' ||
+    (isScheduled && startsAtDate.getTime() <= now.getTime() + 5 * 60 * 1000);
 
   const handleShare = async () => {
     await shareService.shareMeetingLink({
@@ -99,7 +122,7 @@ export const MeetingDetailsScreen: React.FC = () => {
 
   const handleStartOrJoin = async () => {
     if (meeting.status === 'cancelled') {
-      Alert.alert('Meeting Cancelled', 'This meeting was cancelled.');
+      feedback.alert('Meeting Cancelled', 'This meeting was cancelled.');
       return;
     }
     if (meeting.status === 'ended') {
@@ -111,7 +134,7 @@ export const MeetingDetailsScreen: React.FC = () => {
   };
 
   const handleCancel = () => {
-    Alert.alert(
+    feedback.alert(
       'Cancel Meeting',
       'Are you sure you want to cancel this meeting? All invitees will be notified.',
       [
@@ -125,14 +148,14 @@ export const MeetingDetailsScreen: React.FC = () => {
                 meetingId: meeting.id,
                 expectedVersion: meeting.version,
               }).unwrap();
-              Alert.alert('Success', 'Meeting cancelled');
+              feedback.alert('Success', 'Meeting cancelled');
               refetch();
             } catch (err: unknown) {
               const msg =
                 typeof err === 'object' && err !== null && 'message' in err
                   ? (err as { message: string }).message
                   : 'Failed to cancel';
-              Alert.alert('Error', msg);
+              feedback.alert('Error', msg);
             }
           },
         },
@@ -141,25 +164,45 @@ export const MeetingDetailsScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer scrollable={false} padded={false} testID="meeting-details-screen">
+    <ScreenContainer
+      scrollable={false}
+      padded={false}
+      testID="meeting-details-screen"
+    >
       <HeaderBar
         title="Meeting Details"
         showBack
         onBack={() => navigation.goBack()}
         rightAction={
-          hasHostPrivileges && meeting.status !== 'cancelled' && meeting.status !== 'ended'
+          hasHostPrivileges &&
+          meeting.status !== 'cancelled' &&
+          meeting.status !== 'ended'
             ? {
                 label: 'Edit',
-                onPress: () => navigation.navigate(ROUTES.EDIT_MEETING, { meetingId: meeting.id }),
+                onPress: () =>
+                  navigation.navigate(ROUTES.EDIT_MEETING, {
+                    meetingId: meeting.id,
+                  }),
               }
             : undefined
         }
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {meeting.expiresAt && <Text style={{ color: tokens.textMuted }}>Active until {new Date(meeting.expiresAt).toLocaleString()}</Text>}
+        <Text style={{ color: tokens.textMain }}>Active now: {participants.filter(person => person.status === 'in_meeting').length || meeting.activeParticipantCount}</Text>
+        {participants.filter(person => person.status === 'in_meeting').map(person => <Text key={person.id} style={{ color: tokens.textMuted }}>{person.displayName} - {person.role === 'co_host' ? 'Co-host' : person.role}</Text>)}
+
         {copiedNotice && (
-          <View style={[styles.noticeBanner, { backgroundColor: tokens.surfaceActive }]}>
-            <Text style={[styles.noticeText, { color: tokens.primary }]}>{copiedNotice}</Text>
+          <View
+            style={[
+              styles.noticeBanner,
+              { backgroundColor: tokens.surfaceActive },
+            ]}
+          >
+            <Text style={[styles.noticeText, { color: tokens.primary }]}>
+              {copiedNotice}
+            </Text>
           </View>
         )}
 
@@ -167,11 +210,16 @@ export const MeetingDetailsScreen: React.FC = () => {
         <View
           style={[
             styles.card,
-            { backgroundColor: tokens.surface, borderColor: tokens.borderSubtle },
+            {
+              backgroundColor: tokens.surface,
+              borderColor: tokens.borderSubtle,
+            },
           ]}
         >
           <View style={styles.headerRow}>
-            <Text style={[styles.meetingTitle, { color: tokens.textMain }]}>{meeting.title}</Text>
+            <Text style={[styles.meetingTitle, { color: tokens.textMain }]}>
+              {meeting.title}
+            </Text>
             <StatusBadge status={meeting.status} />
           </View>
 
@@ -181,18 +229,26 @@ export const MeetingDetailsScreen: React.FC = () => {
             </Text>
           )}
 
-          <View style={[styles.divider, { backgroundColor: tokens.borderSubtle }]} />
+          <View
+            style={[styles.divider, { backgroundColor: tokens.borderSubtle }]}
+          />
 
           <View style={styles.infoGrid}>
             <View style={styles.infoCol}>
-              <Text style={[styles.infoLabel, { color: tokens.textMuted }]}>Type</Text>
+              <Text style={[styles.infoLabel, { color: tokens.textMuted }]}>
+                Type
+              </Text>
               <Text style={[styles.infoVal, { color: tokens.textMain }]}>
-                {meeting.timing.kind === 'instant' ? 'Instant Meeting' : 'Scheduled'}
+                {meeting.timing.kind === 'instant'
+                  ? 'Instant Meeting'
+                  : 'Scheduled'}
               </Text>
             </View>
 
             <View style={styles.infoCol}>
-              <Text style={[styles.infoLabel, { color: tokens.textMuted }]}>Start Time</Text>
+              <Text style={[styles.infoLabel, { color: tokens.textMuted }]}>
+                Start Time
+              </Text>
               <Text style={[styles.infoVal, { color: tokens.textMain }]}>
                 {scheduledTimeStr}
               </Text>
@@ -200,7 +256,9 @@ export const MeetingDetailsScreen: React.FC = () => {
 
             {meeting.timing.kind === 'scheduled' && (
               <View style={styles.infoCol}>
-                <Text style={[styles.infoLabel, { color: tokens.textMuted }]}>Timezone</Text>
+                <Text style={[styles.infoLabel, { color: tokens.textMuted }]}>
+                  Timezone
+                </Text>
                 <Text style={[styles.infoVal, { color: tokens.textMain }]}>
                   {meeting.timing.timezone}
                 </Text>
@@ -208,9 +266,13 @@ export const MeetingDetailsScreen: React.FC = () => {
             )}
 
             <View style={styles.infoCol}>
-              <Text style={[styles.infoLabel, { color: tokens.textMuted }]}>Guest Access</Text>
+              <Text style={[styles.infoLabel, { color: tokens.textMuted }]}>
+                Guest Access
+              </Text>
               <Text style={[styles.infoVal, { color: tokens.textMain }]}>
-                {meeting.guestAccess ? 'Enabled' : 'Restricted to Account Holders'}
+                {meeting.guestAccess
+                  ? 'Enabled'
+                  : 'Restricted to Account Holders'}
               </Text>
             </View>
           </View>
@@ -220,27 +282,41 @@ export const MeetingDetailsScreen: React.FC = () => {
         <View
           style={[
             styles.card,
-            { backgroundColor: tokens.surface, borderColor: tokens.borderSubtle },
+            {
+              backgroundColor: tokens.surface,
+              borderColor: tokens.borderSubtle,
+            },
           ]}
         >
-          <Text style={[styles.cardTitle, { color: tokens.textMain }]}>Joining Credentials</Text>
+          <Text style={[styles.cardTitle, { color: tokens.textMain }]}>
+            Joining Credentials
+          </Text>
 
           <View style={styles.codeRow}>
             <View style={styles.codeWrap}>
-              <Text style={[styles.codeLabel, { color: tokens.textMuted }]}>Meeting Code</Text>
-              <Text style={[styles.codeText, { color: tokens.primary }]}>{meeting.code}</Text>
+              <Text style={[styles.codeLabel, { color: tokens.textMuted }]}>
+                Meeting Code
+              </Text>
+              <Text style={[styles.codeText, { color: tokens.primary }]}>
+                {meeting.code}
+              </Text>
             </View>
             <TouchableOpacity
-              style={[styles.copyBtn, { backgroundColor: tokens.surfaceSubtle }]}
+              style={[
+                styles.copyBtn,
+                { backgroundColor: tokens.surfaceSubtle },
+              ]}
               onPress={handleCopyCode}
             >
-              <Text style={[styles.copyBtnText, { color: tokens.textMain }]}>📋 Copy</Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}><AppIcon name="copy" size={16} /><Text style={[styles.copyBtnText, { color: tokens.textMain }]}>Copy</Text></View>
             </TouchableOpacity>
           </View>
 
           <View style={styles.linkRow}>
             <View style={styles.linkWrap}>
-              <Text style={[styles.codeLabel, { color: tokens.textMuted }]}>Direct Link</Text>
+              <Text style={[styles.codeLabel, { color: tokens.textMuted }]}>
+                Direct Link
+              </Text>
               <Text
                 style={[styles.linkText, { color: tokens.textMuted }]}
                 numberOfLines={1}
@@ -249,16 +325,20 @@ export const MeetingDetailsScreen: React.FC = () => {
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.copyBtn, { backgroundColor: tokens.surfaceSubtle }]}
+              style={[
+                styles.copyBtn,
+                { backgroundColor: tokens.surfaceSubtle },
+              ]}
               onPress={handleCopyLink}
             >
-              <Text style={[styles.copyBtnText, { color: tokens.textMain }]}>📋 Copy</Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}><AppIcon name="copy" size={16} /><Text style={[styles.copyBtnText, { color: tokens.textMain }]}>Copy</Text></View>
             </TouchableOpacity>
           </View>
 
           <View style={styles.shareBtnWrap}>
             <AppButton
-              title="📤 Share Meeting Invite"
+              title="Share Meeting Invite"
+              icon="send"
               onPress={handleShare}
               variant="secondary"
             />
@@ -269,33 +349,70 @@ export const MeetingDetailsScreen: React.FC = () => {
         <View
           style={[
             styles.card,
-            { backgroundColor: tokens.surface, borderColor: tokens.borderSubtle },
+            {
+              backgroundColor: tokens.surface,
+              borderColor: tokens.borderSubtle,
+            },
           ]}
         >
-          <Text style={[styles.cardTitle, { color: tokens.textMain }]}>Default Permissions</Text>
+          <Text style={[styles.cardTitle, { color: tokens.textMain }]}>
+            Default Permissions
+          </Text>
           <View style={styles.permList}>
             <Text style={[styles.permItem, { color: tokens.textMuted }]}>
               Microphone:{' '}
-              <Text style={{ color: meeting.defaultPermissions.microphone ? tokens.success : tokens.textMain }}>
-                {meeting.defaultPermissions.microphone ? 'Allowed on entry' : 'Muted on entry'}
+              <Text
+                style={{
+                  color: meeting.defaultPermissions.microphone
+                    ? tokens.success
+                    : tokens.textMain,
+                }}
+              >
+                {meeting.defaultPermissions.microphone
+                  ? 'Allowed on entry'
+                  : 'Muted on entry'}
               </Text>
             </Text>
             <Text style={[styles.permItem, { color: tokens.textMuted }]}>
               Camera:{' '}
-              <Text style={{ color: meeting.defaultPermissions.camera ? tokens.success : tokens.textMain }}>
-                {meeting.defaultPermissions.camera ? 'Enabled on entry' : 'Off on entry'}
+              <Text
+                style={{
+                  color: meeting.defaultPermissions.camera
+                    ? tokens.success
+                    : tokens.textMain,
+                }}
+              >
+                {meeting.defaultPermissions.camera
+                  ? 'Enabled on entry'
+                  : 'Off on entry'}
               </Text>
             </Text>
             <Text style={[styles.permItem, { color: tokens.textMuted }]}>
               Screen Sharing:{' '}
-              <Text style={{ color: meeting.defaultPermissions.screenShare ? tokens.success : tokens.textMain }}>
-                {meeting.defaultPermissions.screenShare ? 'Allowed' : 'Requires Approval'}
+              <Text
+                style={{
+                  color: meeting.defaultPermissions.screenShare
+                    ? tokens.success
+                    : tokens.textMain,
+                }}
+              >
+                {meeting.defaultPermissions.screenShare
+                  ? 'Allowed'
+                  : 'Requires Approval'}
               </Text>
             </Text>
             <Text style={[styles.permItem, { color: tokens.textMuted }]}>
               Chat Messaging:{' '}
-              <Text style={{ color: meeting.defaultPermissions.chat ? tokens.success : tokens.textMain }}>
-                {meeting.defaultPermissions.chat ? 'Allowed' : 'Disabled initially'}
+              <Text
+                style={{
+                  color: meeting.defaultPermissions.chat
+                    ? tokens.success
+                    : tokens.textMain,
+                }}
+              >
+                {meeting.defaultPermissions.chat
+                  ? 'Allowed'
+                  : 'Disabled initially'}
               </Text>
             </Text>
           </View>
@@ -305,7 +422,10 @@ export const MeetingDetailsScreen: React.FC = () => {
         <View
           style={[
             styles.card,
-            { backgroundColor: tokens.surface, borderColor: tokens.borderSubtle },
+            {
+              backgroundColor: tokens.surface,
+              borderColor: tokens.borderSubtle,
+            },
           ]}
         >
           <Text style={[styles.cardTitle, { color: tokens.textMain }]}>
@@ -314,23 +434,34 @@ export const MeetingDetailsScreen: React.FC = () => {
 
           {meeting.invitees.length === 0 ? (
             <Text style={[styles.emptyText, { color: tokens.textMuted }]}>
-              No specific invitees listed. Anyone with the code can join if guest access is enabled.
+              No specific invitees listed. Anyone with the code can join if
+              guest access is enabled.
             </Text>
           ) : (
             <View style={styles.inviteeList}>
-              {meeting.invitees.map((inv) => (
+              {meeting.invitees.map(inv => (
                 <View
                   key={inv.id}
                   style={[
                     styles.inviteeRow,
-                    { borderColor: tokens.borderSubtle, backgroundColor: tokens.surfaceSubtle },
+                    {
+                      borderColor: tokens.borderSubtle,
+                      backgroundColor: tokens.surfaceSubtle,
+                    },
                   ]}
                 >
                   <View style={styles.inviteeInfo}>
-                    <Text style={[styles.inviteeName, { color: tokens.textMain }]}>
+                    <Text
+                      style={[styles.inviteeName, { color: tokens.textMain }]}
+                    >
                       {inv.displayName}
                     </Text>
-                    <Text style={[styles.inviteeContact, { color: tokens.textMuted }]}>
+                    <Text
+                      style={[
+                        styles.inviteeContact,
+                        { color: tokens.textMuted },
+                      ]}
+                    >
                       {inv.email || inv.phoneE164}
                     </Text>
                   </View>
@@ -340,7 +471,9 @@ export const MeetingDetailsScreen: React.FC = () => {
                         styles.roleBadge,
                         {
                           backgroundColor:
-                            inv.role === 'co_host' ? tokens.primarySurface : tokens.surface,
+                            inv.role === 'co_host'
+                              ? tokens.primarySurface
+                              : tokens.surface,
                         },
                       ]}
                     >
@@ -349,14 +482,18 @@ export const MeetingDetailsScreen: React.FC = () => {
                           styles.roleBadgeText,
                           {
                             color:
-                              inv.role === 'co_host' ? tokens.primary : tokens.textMuted,
+                              inv.role === 'co_host'
+                                ? tokens.primary
+                                : tokens.textMuted,
                           },
                         ]}
                       >
                         {inv.role === 'co_host' ? 'Co-Host' : 'Guest'}
                       </Text>
                     </View>
-                    <Text style={[styles.invStatus, { color: tokens.textMuted }]}>
+                    <Text
+                      style={[styles.invStatus, { color: tokens.textMuted }]}
+                    >
                       {inv.status ?? inv.invitationStatus}
                     </Text>
                   </View>
@@ -369,7 +506,12 @@ export const MeetingDetailsScreen: React.FC = () => {
         {/* Primary Action Buttons */}
         <View style={styles.actionSection}>
           {meeting.status === 'cancelled' ? (
-            <View style={[styles.cancelledBox, { backgroundColor: tokens.dangerSurface }]}>
+            <View
+              style={[
+                styles.cancelledBox,
+                { backgroundColor: tokens.dangerSurface },
+              ]}
+            >
               <Text style={[styles.cancelledText, { color: tokens.danger }]}>
                 This meeting was cancelled by the host.
               </Text>
@@ -377,7 +519,11 @@ export const MeetingDetailsScreen: React.FC = () => {
           ) : meeting.status === 'ended' ? (
             <AppButton
               title="View Meeting Summary"
-              onPress={() => navigation.navigate(ROUTES.MEETING_SUMMARY, { meetingId: meeting.id })}
+              onPress={() =>
+                navigation.navigate(ROUTES.MEETING_SUMMARY, {
+                  meetingId: meeting.id,
+                })
+              }
               variant="secondary"
             />
           ) : (
@@ -430,6 +576,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   scrollContent: {
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
     padding: 16,
     gap: 16,
     paddingBottom: 40,

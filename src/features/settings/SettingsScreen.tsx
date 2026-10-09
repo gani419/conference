@@ -1,11 +1,18 @@
-import React from 'react';
+import { UserAvatar } from '../../components/feedback/UserAvatar';
+import { feedback } from '../../services/feedback';
+import React, { useState } from 'react';
+import {
+  enablePush,
+  disablePush,
+  pushEnabled,
+} from '../../services/pushService';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Alert,
   Platform,
+  Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,7 +26,6 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setThemePreference } from '../../store/slices/themeSlice';
 import { clearSession } from '../../store/slices/authSlice';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
-import { getAvatarDefinition } from '../../constants/avatars';
 import { authService } from '../../services/authService';
 import { mediaService } from '../../services/mediaService';
 import { storageService } from '../../services/storageService';
@@ -27,44 +33,52 @@ import { STORAGE_KEYS } from '../../constants/storageKeys';
 import { ENV } from '../../config/environment';
 
 export const SettingsScreen: React.FC = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const dispatch = useAppDispatch();
   const { preference, resolved, tokens } = useResolvedTheme();
 
-  const session = useAppSelector((state) => state.auth.session);
+  const session = useAppSelector(state => state.auth.session);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() =>
+    session ? pushEnabled(session.user.id) : false,
+  );
+  const [pushBusy, setPushBusy] = useState(false);
   const isGuest = session?.kind === 'guest';
-  const avatarDef = getAvatarDefinition(session?.user.avatarId ?? 'avatar-1');
 
   const handleThemeChange = (newPref: string) => {
     dispatch(setThemePreference(newPref as 'system' | 'light' | 'dark'));
   };
 
   const handleClearGuestData = () => {
-    Alert.alert('Clear Guest Profile', 'Remove saved guest display name and avatar?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
+    feedback.alert(
+      'Clear Guest Profile',
+      'Remove saved guest display name and avatar?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
           onPress: async () => {
             await mediaService.disconnect();
             await authService.logout();
             storageService.remove(STORAGE_KEYS.GUEST_PROFILE);
             dispatch(clearSession());
             navigation.replace(ROUTES.GUEST_SETUP);
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+    feedback.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out',
         style: 'destructive',
         onPress: async () => {
-            await mediaService.disconnect();
-            await authService.logout();
+          await mediaService.disconnect();
+          await authService.logout();
           storageService.remove(STORAGE_KEYS.AUTH_SESSION);
           dispatch(clearSession());
           navigation.replace(ROUTES.LOGIN);
@@ -75,29 +89,26 @@ export const SettingsScreen: React.FC = () => {
 
   return (
     <ScreenContainer scrollable={false} padded={false} testID="settings-screen">
-      <HeaderBar
-        title="Settings"
-        showBack
-        onBack={() => navigation.goBack()}
-      />
+      <HeaderBar title="Settings" showBack onBack={() => navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { width: '100%', maxWidth: 900, alignSelf: 'center' },
+        ]}
+      >
         {/* User Profile Card */}
         <View
           style={[
             styles.card,
-            { backgroundColor: tokens.surface, borderColor: tokens.borderSubtle },
+            {
+              backgroundColor: tokens.surface,
+              borderColor: tokens.borderSubtle,
+            },
           ]}
         >
           <View style={styles.profileRow}>
-            <View
-              style={[
-                styles.avatarCircle,
-                { backgroundColor: avatarDef.backgroundColor },
-              ]}
-            >
-              <Text style={styles.avatarEmoji}>{avatarDef.emoji}</Text>
-            </View>
+            <UserAvatar avatarId={session?.user.avatarId} size={64} />
             <View style={styles.profileText}>
               <Text style={[styles.userName, { color: tokens.textMain }]}>
                 {session?.user.displayName ?? 'Guest User'}
@@ -113,11 +124,62 @@ export const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
+        {!isGuest && session && Platform.OS === 'android' && (
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: tokens.surface,
+                borderColor: tokens.borderSubtle,
+              },
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: tokens.textMain }]}>
+              Meeting invitations
+            </Text>
+            <Text style={[styles.cardSub, { color: tokens.textMuted }]}>
+              Enable notifications to receive invitations when Conference is in
+              the background.
+            </Text>
+            <AppButton
+              title={
+                notificationsEnabled
+                  ? 'Disable notifications'
+                  : 'Enable notifications'
+              }
+              loading={pushBusy}
+              onPress={() => {
+                setPushBusy(true);
+                const action = notificationsEnabled
+                  ? disablePush()
+                  : enablePush(session.user.id);
+                void action
+                  .then(() => setNotificationsEnabled(!notificationsEnabled))
+                  .catch(error =>
+                    feedback.alert('Notifications', error.message, [
+                      { text: 'OK' },
+                      {
+                        text: 'App settings',
+                        onPress: () => {
+                          void Linking.openSettings();
+                        },
+                      },
+                    ]),
+                  )
+                  .finally(() => setPushBusy(false));
+              }}
+            />
+          </View>
+        )}
+
         {/* Theme Settings */}
         <View
           style={[
             styles.card,
-            { backgroundColor: tokens.surface, borderColor: tokens.borderSubtle },
+            {
+              backgroundColor: tokens.surface,
+              borderColor: tokens.borderSubtle,
+            },
           ]}
         >
           <Text style={[styles.cardTitle, { color: tokens.textMain }]}>
@@ -141,72 +203,77 @@ export const SettingsScreen: React.FC = () => {
         </View>
 
         {/* Architecture & Environment Diagnostics */}
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: tokens.surface, borderColor: tokens.borderSubtle },
-          ]}
-        >
-          <Text style={[styles.cardTitle, { color: tokens.textMain }]}>
-            System Diagnostics
-          </Text>
+        {__DEV__ && (
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: tokens.surface,
+                borderColor: tokens.borderSubtle,
+              },
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: tokens.textMain }]}>
+              System Diagnostics
+            </Text>
 
-          <View style={styles.diagList}>
-            <View style={styles.diagRow}>
-              <Text style={[styles.diagLabel, { color: tokens.textMuted }]}>
-                React Native Baseline
-              </Text>
-              <Text style={[styles.diagVal, { color: tokens.textMain }]}>
-                0.87.1 (Pinned)
-              </Text>
-            </View>
+            <View style={styles.diagList}>
+              <View style={styles.diagRow}>
+                <Text style={[styles.diagLabel, { color: tokens.textMuted }]}>
+                  React Native Baseline
+                </Text>
+                <Text style={[styles.diagVal, { color: tokens.textMain }]}>
+                  0.87.1 (Pinned)
+                </Text>
+              </View>
 
-            <View style={styles.diagRow}>
-              <Text style={[styles.diagLabel, { color: tokens.textMuted }]}>
-                Architecture & Engine
-              </Text>
-              <Text style={[styles.diagVal, { color: tokens.textMain }]}>
-                New Arch • Hermes
-              </Text>
-            </View>
+              <View style={styles.diagRow}>
+                <Text style={[styles.diagLabel, { color: tokens.textMuted }]}>
+                  Architecture & Engine
+                </Text>
+                <Text style={[styles.diagVal, { color: tokens.textMain }]}>
+                  New Arch • Hermes
+                </Text>
+              </View>
 
-            <View style={styles.diagRow}>
-              <Text style={[styles.diagLabel, { color: tokens.textMuted }]}>
-                Android SDK Target
-              </Text>
-              <Text style={[styles.diagVal, { color: tokens.textMain }]}>
-                Target 36 • Compile 37
-              </Text>
-            </View>
+              <View style={styles.diagRow}>
+                <Text style={[styles.diagLabel, { color: tokens.textMuted }]}>
+                  Android SDK Target
+                </Text>
+                <Text style={[styles.diagVal, { color: tokens.textMain }]}>
+                  Target 36 • Compile 37
+                </Text>
+              </View>
 
-            <View style={styles.diagRow}>
-              <Text style={[styles.diagLabel, { color: tokens.textMuted }]}>
-                Backend Adapter
-              </Text>
-              <Text style={[styles.diagVal, { color: tokens.primary }]}>
-                {ENV.backendMode.toUpperCase()}
-              </Text>
-            </View>
+              <View style={styles.diagRow}>
+                <Text style={[styles.diagLabel, { color: tokens.textMuted }]}>
+                  Backend Adapter
+                </Text>
+                <Text style={[styles.diagVal, { color: tokens.primary }]}>
+                  {ENV.backendMode.toUpperCase()}
+                </Text>
+              </View>
 
-            <View style={styles.diagRow}>
-              <Text style={[styles.diagLabel, { color: tokens.textMuted }]}>
-                Media Engine Adapter
-              </Text>
-              <Text style={[styles.diagVal, { color: tokens.primary }]}>
-                {ENV.mediaMode.toUpperCase()}
-              </Text>
-            </View>
+              <View style={styles.diagRow}>
+                <Text style={[styles.diagLabel, { color: tokens.textMuted }]}>
+                  Media Engine Adapter
+                </Text>
+                <Text style={[styles.diagVal, { color: tokens.primary }]}>
+                  {ENV.mediaMode.toUpperCase()}
+                </Text>
+              </View>
 
-            <View style={styles.diagRow}>
-              <Text style={[styles.diagLabel, { color: tokens.textMuted }]}>
-                Platform & OS
-              </Text>
-              <Text style={[styles.diagVal, { color: tokens.textMain }]}>
-                {Platform.OS} ({Platform.Version})
-              </Text>
+              <View style={styles.diagRow}>
+                <Text style={[styles.diagLabel, { color: tokens.textMuted }]}>
+                  Platform & OS
+                </Text>
+                <Text style={[styles.diagVal, { color: tokens.textMain }]}>
+                  {Platform.OS} ({Platform.Version})
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Account Management & Logout */}
         <View style={styles.actionsSection}>

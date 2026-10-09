@@ -1,3 +1,4 @@
+import { AppIcon } from '../icons/AppIcon';
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { PermissionRequest, PermissionKind } from '../../types/permission';
@@ -87,12 +88,12 @@ export const PermissionRequestsSheet: React.FC<PermissionRequestsSheetProps> = (
 
         const permissionIcon =
           req.permission === 'microphone'
-            ? '🎙️'
+            ? "mic"
             : req.permission === 'camera'
-            ? '📹'
+            ? "video"
             : req.permission === 'screenShare'
-            ? '🖥️'
-            : '💬';
+            ? "monitor-up"
+            : "message-circle";
 
         return (
           <View
@@ -115,7 +116,7 @@ export const PermissionRequestsSheet: React.FC<PermissionRequestsSheetProps> = (
                 {req.participantName}
               </Text>
               <View style={styles.permRow}>
-                <Text style={styles.permIcon}>{permissionIcon}</Text>
+                <AppIcon style={styles.permIcon} name={permissionIcon} />
                 <Text style={[styles.permText, { color: tokens.textMuted }]}>
                   {permissionLabel}
                 </Text>

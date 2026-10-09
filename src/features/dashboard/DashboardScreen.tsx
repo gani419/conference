@@ -23,11 +23,7 @@ export const DashboardScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer
-      scrollable={false}
-      padded={false}
-      testID="dashboard-screen"
-    >
+    <ScreenContainer scrollable={false} padded={false} testID="dashboard-screen">
       {renderContent()}
     </ScreenContainer>
   );

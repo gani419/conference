@@ -39,6 +39,7 @@ export type MeetingTiming =
     };
 
 export interface CreateMeetingPayload {
+  expiresAt?: ISODateTime | undefined;
   title: string;
   description: string;
   timing: MeetingTiming;
@@ -48,6 +49,7 @@ export interface CreateMeetingPayload {
 }
 
 export interface UpdateMeetingPayload {
+  expiresAt?: ISODateTime | undefined;
   meetingId: string;
   expectedVersion: number;
   title: string;
@@ -86,6 +88,7 @@ export interface MeetingInvitee {
 }
 
 export interface Meeting {
+  expiresAt?: ISODateTime | undefined;
   id: string;
   code: string;
   shareLink: string;
@@ -111,6 +114,7 @@ export interface Meeting {
 }
 
 export interface MeetingListItem {
+  expiresAt?: ISODateTime | undefined;
   id: string;
   code: string;
   shareLink: string;

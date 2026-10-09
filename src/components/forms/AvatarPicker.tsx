@@ -1,3 +1,4 @@
+import { AppIcon } from '../icons/AppIcon';
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { AVATARS } from '../../constants/avatars';
@@ -43,13 +44,11 @@ export const AvatarPicker: React.FC<AvatarPickerProps> = ({
               accessibilityState={{ selected: isSelected }}
             >
               <View style={[styles.avatarCircle, { backgroundColor: avatar.backgroundColor }]}>
-                <Text style={[styles.initials, { color: avatar.textColor }]}>
-                  {avatar.initials}
-                </Text>
+                <AppIcon name="user" size={26} color={avatar.textColor} />
               </View>
               {isSelected && (
                 <View style={[styles.checkBadge, { backgroundColor: tokens.primary }]}>
-                  <Text style={styles.checkIcon}>✓</Text>
+                  <AppIcon style={styles.checkIcon} name="check" />
                 </View>
               )}
             </TouchableOpacity>

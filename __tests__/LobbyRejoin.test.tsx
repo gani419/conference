@@ -1,0 +1,22 @@
+﻿import React from 'react';
+import TestRenderer, { act } from 'react-test-renderer';
+import { AppButton } from '../src/components/forms/AppButton';
+import { LobbyScreen } from '../src/features/lobby/LobbyScreen';
+const mockReplace=jest.fn();const mockRefresh=jest.fn();const mockJoin=jest.fn();
+jest.mock('@react-navigation/native',()=>({useNavigation:()=>({replace:mockReplace,goBack:jest.fn()}),useRoute:()=>({params:{meetingId:'meeting-1'}})}));
+jest.mock('../src/store/hooks',()=>({useAppSelector:()=>({user:{id:'host-1',displayName:'Host'}})}));
+jest.mock('../src/hooks/useResolvedTheme',()=>({useResolvedTheme:()=>({tokens:require('../shared/theme').LIGHT_TOKENS})}));
+jest.mock('../src/components/icons/AppIcon',()=>({AppIcon:()=>null}));
+jest.mock('../src/components/layout/ScreenContainer',()=>({ScreenContainer:({children}:any)=>children}));
+jest.mock('../src/components/layout/HeaderBar',()=>({HeaderBar:()=>null}));
+jest.mock('../src/api/appApi',()=>({useGetMeetingQuery:()=>({data:{id:'meeting-1',title:'Rejoin',status:'live',organizerId:'host-1',organizerName:'Host'}}),useGetParticipantsQuery:()=>({data:[{id:'participant-1',userId:'host-1',status:'left'}],refetch:mockRefresh}),useJoinMeetingMutation:()=>[mockJoin,{}],useStartMeetingMutation:()=>[jest.fn(),{}]}));
+test('rejoining waits for refreshed membership before navigating past a cached left participant',async()=>{
+ let resolveRefresh!:(value:unknown)=>void;mockRefresh.mockReturnValue({unwrap:()=>new Promise(resolve=>{resolveRefresh=resolve;})});mockJoin.mockReturnValue({unwrap:()=>Promise.resolve({requiresLobby:false,meeting:{status:'live'}})});
+ let renderer!:TestRenderer.ReactTestRenderer;await act(async()=>{renderer=TestRenderer.create(<LobbyScreen/>);});
+ const join=renderer.root.findAllByType(AppButton).find(node=>node.props.title==='Join meeting')!;
+ let pressing!:Promise<void>;await act(async()=>{pressing=join.props.onPress();await Promise.resolve();});
+ expect(mockRefresh).toHaveBeenCalledTimes(1);expect(mockReplace).not.toHaveBeenCalled();
+ await act(async()=>{resolveRefresh([{userId:'host-1',status:'in_meeting'}]);await pressing;});
+ expect(mockReplace).toHaveBeenCalledWith('MeetingRoom',{meetingId:'meeting-1'});
+ await act(async()=>renderer.unmount());
+});

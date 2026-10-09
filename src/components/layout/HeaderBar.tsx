@@ -1,3 +1,4 @@
+import { AppIcon } from '../icons/AppIcon';
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -68,7 +69,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Text style={[styles.backIcon, { color: tokens.textMain }]}>‹</Text>
+            <AppIcon style={[styles.backIcon, { color: tokens.textMain }]} name="chevron-left" />
           </TouchableOpacity>
         )}
         <View style={styles.titleContainer}>

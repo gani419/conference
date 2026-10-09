@@ -1,3 +1,5 @@
+import { UserPlus, X } from 'lucide-react';
+import { InvitationImport } from './InvitationImport';
 import { useEffect, useRef, useState } from 'react';
 import { backend } from './backend/supabase';
 import type { Meeting, MeetingDraft, Permissions } from './backend/types';
@@ -12,20 +14,43 @@ export function MeetingForm({
   onSaved: (id: string) => void;
   onClose: () => void;
 }) {
-  const toLocal = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  const [expiry, setExpiry] = useState(toLocal(new Date(meeting?.expires_at || Date.now() + 2 * 60 * 60 * 1000)));
+  const toLocal = (date: Date) =>
+    new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+  const [expiry, setExpiry] = useState(
+    toLocal(new Date(meeting?.expires_at || Date.now() + 2 * 60 * 60 * 1000)),
+  );
   const dialog = useRef<HTMLElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-  return () => previous?.focus();
+    return () => previous?.focus();
   }, []);
   const action = useAction();
+  const [importPending, setImportPending] = useState(false);
   const [search, setSearch] = useState('');
-  const [suggestions, setSuggestions] = useState<{email:string;display_name:string}[]>([]);
+  const [suggestions, setSuggestions] = useState<
+    { email: string; display_name: string }[]
+  >([]);
   useEffect(() => {
     let active = true;
-    const timer = setTimeout(() => { backend.read<{email:string;display_name:string}[]>('invitee_suggestions', {query:search}).then(rows => {if(active) setSuggestions(rows);}).catch(() => {if(active) setSuggestions([]);}); }, 300);
-    return () => { active=false; clearTimeout(timer); };
+    const timer = setTimeout(() => {
+      backend
+        .read<{ email: string; display_name: string }[]>(
+          'invitee_suggestions',
+          { query: search },
+        )
+        .then(rows => {
+          if (active) setSuggestions(rows);
+        })
+        .catch(() => {
+          if (active) setSuggestions([]);
+        });
+    }, 300);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [search]);
   const [scheduled, setScheduled] = useState(
     meeting?.timing_kind === 'scheduled',
@@ -103,12 +128,22 @@ export function MeetingForm({
         <form
           onSubmit={async e => {
             e.preventDefault();
+            if (importPending) {
+              action.setError(
+                'Add or cancel the invitation import before saving.',
+              );
+              return;
+            }
             const f = new FormData(e.currentTarget);
             const startsAt = String(f.get('startsAt') || '');
             await action.run(async () => {
-              const start = scheduled ? new Date(startsAt).getTime() : Date.now();
-              if (scheduled && !meeting && start <= Date.now()) throw new Error('Choose a future start date and time.');
-              if (new Date(expiry).getTime() <= start) throw new Error('Expiry must be after the meeting start.');
+              const start = scheduled
+                ? new Date(startsAt).getTime()
+                : Date.now();
+              if (scheduled && !meeting && start <= Date.now())
+                throw new Error('Choose a future start date and time.');
+              if (new Date(expiry).getTime() <= start)
+                throw new Error('Expiry must be after the meeting start.');
               const draft: MeetingDraft = {
                 expiresAt: new Date(expiry).toISOString(),
                 title: String(f.get('title')).trim(),
@@ -176,8 +211,17 @@ export function MeetingForm({
                 name="startsAt"
                 type="datetime-local"
                 required
-                defaultValue={localTime || toLocal(new Date(Math.ceil(Date.now() / 60000) * 60000))}
-                onChange={e => { const start = new Date(e.target.value); if (start.getTime() >= new Date(expiry).getTime()) setExpiry(toLocal(new Date(start.getTime() + 2 * 60 * 60 * 1000))); }}
+                defaultValue={
+                  localTime ||
+                  toLocal(new Date(Math.ceil(Date.now() / 60000) * 60000))
+                }
+                onChange={e => {
+                  const start = new Date(e.target.value);
+                  if (start.getTime() >= new Date(expiry).getTime())
+                    setExpiry(
+                      toLocal(new Date(start.getTime() + 2 * 60 * 60 * 1000)),
+                    );
+                }}
                 disabled={meeting?.status === 'live'}
               />
               {meeting?.status === 'live' && (
@@ -185,8 +229,20 @@ export function MeetingForm({
               )}
             </label>
           )}
-          <label>Active until<input name="expiresAt" type="datetime-local" required value={expiry} onChange={e => setExpiry(e.target.value)} /></label>
-          <p className="small muted">Leaving lets you rejoin before expiry. End for everyone closes the meeting immediately.</p>
+          <label>
+            Active until
+            <input
+              name="expiresAt"
+              type="datetime-local"
+              required
+              value={expiry}
+              onChange={e => setExpiry(e.target.value)}
+            />
+          </label>
+          <p className="small muted">
+            Leaving lets you rejoin before expiry. End for everyone closes the
+            meeting immediately.
+          </p>
           <label className="check">
             <input
               type="checkbox"
@@ -222,13 +278,71 @@ export function MeetingForm({
               email delivery is deferred. Co-hosts require the organizer's
               approval.
             </p>
-            <label>Find a recent invitee or registered email<input value={search} onChange={e => setSearch(e.target.value)} placeholder="Name or exact email address" /></label>
-            {suggestions.map(person => <button type="button" key={person.email} onClick={() => {setInvitees(previous => previous.some(i => i.email.toLowerCase() === person.email.toLowerCase()) ? previous : [...previous, {clientId:crypto.randomUUID(),displayName:person.display_name,email:person.email,role:'guest'}]);setSearch('');}}>{person.display_name} - {person.email}</button>)}
+            <label>
+              Find a recent invitee or registered email
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Name or exact email address"
+              />
+            </label>
+            {suggestions.map(person => (
+              <button
+                type="button"
+                key={person.email}
+                onClick={() => {
+                  setInvitees(previous =>
+                    previous.some(
+                      i => i.email.toLowerCase() === person.email.toLowerCase(),
+                    )
+                      ? previous
+                      : [
+                          ...previous,
+                          {
+                            clientId: crypto.randomUUID(),
+                            displayName: person.display_name,
+                            email: person.email,
+                            role: 'guest',
+                          },
+                        ],
+                  );
+                  setSearch('');
+                }}
+              >
+                {person.display_name} - {person.email}
+              </button>
+            ))}
+            <InvitationImport
+              existing={invitees}
+              disabled={action.busy}
+              onPendingChange={setImportPending}
+              onAdd={people =>
+                setInvitees(previous => {
+                  const seen = new Set(
+                    previous.map(i => i.email.trim().toLowerCase()),
+                  );
+                  return [
+                    ...previous,
+                    ...people
+                      .filter(person => {
+                        if (seen.has(person.email)) return false;
+                        seen.add(person.email);
+                        return true;
+                      })
+                      .map(person => ({
+                        ...person,
+                        clientId: crypto.randomUUID(),
+                      })),
+                  ];
+                })
+              }
+            />
             {invitees.map((i, index) => (
               <div className="invite-row" key={i.clientId}>
                 <input
                   aria-label={`Invitee ${index + 1} name`}
                   required
+                  maxLength={100}
                   placeholder="Name"
                   value={i.displayName}
                   onChange={e =>
@@ -243,6 +357,7 @@ export function MeetingForm({
                   aria-label={`Invitee ${index + 1} email`}
                   type="email"
                   required
+                  maxLength={254}
                   placeholder="Email"
                   value={i.email}
                   onChange={e =>
@@ -297,14 +412,14 @@ export function MeetingForm({
                 ])
               }
             >
-              + Add invitee
+              <UserPlus size={17} aria-hidden="true" /> Add invitee
             </button>
           </fieldset>
           <div className="form-footer">
             <button type="button" disabled={action.busy} onClick={onClose}>
               Cancel
             </button>
-            <button className="primary" disabled={action.busy}>
+            <button className="primary" disabled={action.busy || importPending}>
               {action.busy
                 ? 'Saving…'
                 : meeting

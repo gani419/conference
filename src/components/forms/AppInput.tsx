@@ -1,3 +1,4 @@
+import { AppIcon } from '../icons/AppIcon';
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, TextInputProps } from 'react-native';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
@@ -35,7 +36,7 @@ export const AppInput: React.FC<AppInputProps> = ({
           },
         ]}
       >
-        {icon && <Text style={styles.icon}>{icon}</Text>}
+        {icon && <AppIcon style={styles.icon} name={icon} />}
         <TextInput
           placeholderTextColor={tokens.textSubtle}
           secureTextEntry={isPassword && !showPassword}
@@ -57,7 +58,7 @@ export const AppInput: React.FC<AppInputProps> = ({
             accessibilityRole="button"
             accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
           >
-            <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+            <AppIcon style={styles.eyeIcon} name={showPassword ? 'eye' : 'eye-off'} />
           </TouchableOpacity>
         )}
       </View>

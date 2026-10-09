@@ -1,5 +1,7 @@
+import { feedback } from '../../services/feedback';
+import { AppIcon } from '../../components/icons/AppIcon';
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 import { ROUTES } from '../../constants/routes';
@@ -32,11 +34,14 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const pendingMeetingId = route.params?.pendingMeetingId;
-  const pendingMeetingCode=route.params?.pendingMeetingCode;
+  const pendingMeetingCode = route.params?.pendingMeetingCode;
 
   const handleRegister = async (): Promise<void> => {
     setErrors({});
-    const authIdentifier = { kind: 'email' as const, email: identifier.trim().toLowerCase() };
+    const authIdentifier = {
+      kind: 'email' as const,
+      email: identifier.trim().toLowerCase(),
+    };
 
     const validation = registerFormSchema.safeParse({
       displayName: name,
@@ -48,7 +53,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
 
     if (!validation.success) {
       const errMap: Record<string, string> = {};
-      validation.error.issues.forEach((issue) => {
+      validation.error.issues.forEach(issue => {
         const key = issue.path[issue.path.length - 1] as string;
         errMap[key] = issue.message;
       });
@@ -68,8 +73,12 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
     if (res.success) {
       if (res.data.session) {
         dispatch(setSession(res.data.session));
-        if(pendingMeetingCode) navigation.replace(ROUTES.JOIN_LINK,{code:pendingMeetingCode});
-        else if(pendingMeetingId) navigation.replace(ROUTES.MEETING_DETAILS,{meetingId:pendingMeetingId});
+        if (pendingMeetingCode)
+          navigation.replace(ROUTES.JOIN_LINK, { code: pendingMeetingCode });
+        else if (pendingMeetingId)
+          navigation.replace(ROUTES.MEETING_DETAILS, {
+            meetingId: pendingMeetingId,
+          });
         else navigation.replace(ROUTES.HOME);
         return;
       }
@@ -77,31 +86,42 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
         verificationId: res.data.verificationId,
         contactDestination: identifier.trim(),
         pendingMeetingId,
+        pendingMeetingCode,
       });
     } else {
-      Alert.alert('Registration Failed', res.error.message);
+      feedback.alert('Registration Failed', res.error.message);
     }
   };
 
   const renderForm = (): React.ReactElement => (
-    <View style={[styles.formCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+    <View
+      style={[
+        styles.formCard,
+        { backgroundColor: tokens.surface, borderColor: tokens.border },
+      ]}
+    >
       <TouchableOpacity
         onPress={() => navigation.goBack()}
         style={styles.backBtn}
         accessibilityRole="button"
         accessibilityLabel="Go back"
       >
-        <Text style={[styles.backIcon, { color: tokens.textMain }]}>‹</Text>
+        <AppIcon
+          style={[styles.backIcon, { color: tokens.textMain }]}
+          name="chevron-left"
+        />
       </TouchableOpacity>
 
-      <Text style={[styles.heading, { color: tokens.textMain }]}>Create your account</Text>
+      <Text style={[styles.heading, { color: tokens.textMain }]}>
+        Create your account
+      </Text>
       <Text style={[styles.subheading, { color: tokens.textMuted }]}>
         Set up your profile to get started.
       </Text>
 
       <AppInput
         label="Your name"
-        icon="👤"
+        icon="user"
         placeholder="e.g. Taylor Kim"
         value={name}
         onChangeText={setName}
@@ -110,7 +130,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
 
       <AppInput
         label="Email"
-        icon="✉️"
+        icon="mail"
         placeholder="alex@company.com"
         value={identifier}
         onChangeText={setIdentifier}
@@ -121,7 +141,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
 
       <AppInput
         label="Password (min 12 characters)"
-        icon="🔒"
+        icon="lock"
         placeholder="Create a strong password"
         isPassword
         value={password}
@@ -131,7 +151,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
 
       <AppInput
         label="Confirm password"
-        icon="🔒"
+        icon="lock"
         placeholder="Repeat your password"
         isPassword
         value={confirmPassword}
@@ -139,10 +159,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
         error={errors.confirmPassword}
       />
 
-      <AvatarPicker
-        selectedAvatarId={avatarId}
-        onSelectAvatar={setAvatarId}
-      />
+      <AvatarPicker selectedAvatarId={avatarId} onSelectAvatar={setAvatarId} />
 
       <AppButton
         title="Create account"
@@ -155,21 +172,36 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
         <Text style={[styles.footerText, { color: tokens.textMuted }]}>
           Already have an account?{' '}
         </Text>
-        <TouchableOpacity onPress={() => navigation.navigate(ROUTES.LOGIN, { pendingMeetingId, pendingMeetingCode })}>
-          <Text style={[styles.linkText, { color: tokens.primary }]}>Log in</Text>
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate(ROUTES.LOGIN, {
+              pendingMeetingId,
+              pendingMeetingCode,
+            })
+          }
+        >
+          <Text style={[styles.linkText, { color: tokens.primary }]}>
+            Log in
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
   const renderSideIllustration = (): React.ReactElement => (
-    <View style={[styles.illustrationCard, { backgroundColor: tokens.primaryLight }]}>
-      <Text style={styles.illustrationEmoji}>🌟</Text>
+    <View
+      style={[
+        styles.illustrationCard,
+        { backgroundColor: tokens.primaryLight },
+      ]}
+    >
+      <AppIcon style={styles.illustrationEmoji} name="sparkles" />
       <Text style={[styles.illustrationTitle, { color: tokens.primary }]}>
         Your meetings, your profile
       </Text>
       <Text style={[styles.illustrationSubtitle, { color: tokens.textMuted }]}>
-        A few details help others know you and collaborate seamlessly across devices.
+        A few details help others know you and collaborate seamlessly across
+        devices.
       </Text>
     </View>
   );

@@ -1,5 +1,5 @@
 {
-  "nodeModulesDir": "auto",
+  "nodeModulesDir": "none",
   "compilerOptions": { "strict": true },
   "tasks": {
     "check": "deno check conference-api/index.ts media-token/index.ts outbox-worker/index.ts media-webhook/index.ts"

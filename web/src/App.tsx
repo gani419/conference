@@ -12,7 +12,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { backend, configurationReady } from './backend/supabase';
+import { EmailVerification } from './EmailVerification';
+import { AuthFlowError, backend, configurationReady } from './backend/supabase';
 import type { Identity } from './backend/types';
 import { Dashboard } from './Dashboard';
 const MeetingPage = lazy(() =>
@@ -181,7 +182,26 @@ export function App() {
 function Auth() {
   const [mode, setMode] = useState<'login' | 'register' | 'guest'>('login');
   const [avatarId, setAvatarId] = useState('avatar-1');
+  const [pendingEmail, setPendingEmail] = useState(
+    () => sessionStorage.getItem('conference-pending-email') || '',
+  );
   const action = useAction();
+  const startVerification = (email: string) => {
+    sessionStorage.setItem('conference-pending-email', email);
+    setPendingEmail(email);
+  };
+  if (pendingEmail)
+    return (
+      <EmailVerification
+        email={pendingEmail}
+        onBack={() => {
+          sessionStorage.removeItem('conference-pending-email');
+          setPendingEmail('');
+          setMode('login');
+          action.setError('');
+        }}
+      />
+    );
   return (
     <main className="auth-layout">
       <section className="auth-story">
@@ -231,21 +251,37 @@ function Auth() {
           onSubmit={async e => {
             e.preventDefault();
             const f = new FormData(e.currentTarget);
-            await action.run(() =>
-              mode === 'guest'
-                ? backend.guest(String(f.get('name')).trim())
-                : mode === 'register'
-                ? backend.signUp(
-                    String(f.get('name')).trim(),
-                    String(f.get('email')).trim(),
-                    String(f.get('password')),
-                    avatarId,
-                  )
-                : backend.signIn(
-                    String(f.get('email')).trim(),
-                    String(f.get('password')),
-                  ),
-            );
+            const email = String(f.get('email') || '')
+              .trim()
+              .toLowerCase();
+            await action.run(async () => {
+              if (mode === 'guest') {
+                await backend.guest(String(f.get('name')).trim());
+                return;
+              }
+              if (mode === 'register') {
+                const result = await backend.signUp(
+                  String(f.get('name')).trim(),
+                  email,
+                  String(f.get('password')),
+                  avatarId,
+                );
+                if (result.requiresVerification) startVerification(email);
+                return;
+              }
+              try {
+                await backend.signIn(email, String(f.get('password')));
+              } catch (error) {
+                if (
+                  error instanceof AuthFlowError &&
+                  error.code === 'email_not_confirmed'
+                ) {
+                  startVerification(email);
+                  return;
+                }
+                throw error;
+              }
+            });
           }}
         >
           {mode !== 'login' && (
@@ -260,7 +296,32 @@ function Auth() {
               />
             </label>
           )}
-          {mode === 'register' && <fieldset><legend>Choose an avatar</legend><div className="avatar-options">{AVATARS.map(avatar => <button type="button" key={avatar.id} aria-label={'Select '+avatar.label} aria-pressed={avatarId === avatar.id} onClick={() => setAvatarId(avatar.id)} style={{backgroundColor:avatar.backgroundColor,color:avatar.textColor,border:avatarId === avatar.id ? '3px solid var(--text)' : '3px solid transparent'}}><User size={24} aria-hidden="true" /></button>)}</div></fieldset>}
+          {mode === 'register' && (
+            <fieldset>
+              <legend>Choose an avatar</legend>
+              <div className="avatar-options">
+                {AVATARS.map(avatar => (
+                  <button
+                    type="button"
+                    key={avatar.id}
+                    aria-label={'Select ' + avatar.label}
+                    aria-pressed={avatarId === avatar.id}
+                    onClick={() => setAvatarId(avatar.id)}
+                    style={{
+                      backgroundColor: avatar.backgroundColor,
+                      color: avatar.textColor,
+                      border:
+                        avatarId === avatar.id
+                          ? '3px solid var(--text)'
+                          : '3px solid transparent',
+                    }}
+                  >
+                    <User size={24} aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          )}
           {mode !== 'guest' && (
             <>
               <label>

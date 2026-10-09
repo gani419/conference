@@ -1,53 +1,102 @@
+import { feedback } from '../../services/feedback';
+import { authService } from '../../services/authService';
+import { mediaService } from '../../services/mediaService';
+import { UserAvatar } from '../../components/feedback/UserAvatar';
+import { AppIcon } from '../../components/icons/AppIcon';
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import { useDashboardController } from './useDashboardController';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 import { ROUTES } from '../../constants/routes';
-import { MeetingCard } from '../../components/meeting/MeetingCard';
-import { EmptyState } from '../../components/feedback/EmptyState';
+import { DashboardSections } from './DashboardSections';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { DevControlsModal } from '../../components/feedback/DevControlsModal';
 
-export const DashboardMobile: React.FC<ReturnType<typeof useDashboardController>> = (
-  controller,
-) => {
+export const DashboardMobile: React.FC<
+  ReturnType<typeof useDashboardController>
+> = controller => {
   const { tokens } = useResolvedTheme();
+  const { width } = useLayoutMode();
+  const wide = width >= 600;
   const isGuest = controller.session?.kind === 'guest';
 
+  const logout = () => feedback.alert('Are you sure to logout?', 'You can sign in again at any time.', [{ text: 'Stay', style: 'cancel' }, { text: 'Logout', style: 'destructive', onPress: async () => { await mediaService.disconnect(); await authService.logout(); controller.navigation.reset({ index: 0, routes: [{ name: ROUTES.LOGIN }] }); } }]);
   return (
-    <View style={styles.container}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator nestedScrollEnabled testID="dashboard-scroll">
+    <View
+      style={[
+        styles.container,
+        {
+          width: '100%',
+          maxWidth: 1320,
+          alignSelf: 'center',
+          padding: wide ? 28 : 16,
+        },
+      ]}
+    >
       {/* Top Header */}
       <View style={styles.header}>
         <View>
-          <Text style={[styles.title, { color: tokens.textMain }]}>Dashboard</Text>
+          <Text style={[styles.title, { color: tokens.textMain }]}>
+            Dashboard
+          </Text>
           <Text style={[styles.greeting, { color: tokens.textMuted }]}>
             Hello, {controller.session?.user.displayName ?? 'Guest'}
           </Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity
-            onPress={() => controller.setDevModalVisible(true)}
-            style={[styles.devIconBtn, { backgroundColor: tokens.surfaceSubtle }]}
-            accessibilityLabel="Developer scenarios"
-          >
-            <Text style={styles.devIcon}>🛠️</Text>
-          </TouchableOpacity>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Logout" onPress={logout} style={[styles.settingsIconBtn, { backgroundColor: tokens.surfaceSubtle }]}><AppIcon name="log-out" size={20} /></TouchableOpacity>
+          {__DEV__ && (
+            <TouchableOpacity
+              onPress={() => controller.setDevModalVisible(true)}
+              style={[
+                styles.devIconBtn,
+                { backgroundColor: tokens.surfaceSubtle },
+              ]}
+              accessibilityLabel="Developer scenarios"
+            >
+              <AppIcon style={styles.devIcon} name="wrench" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={() => controller.navigation.navigate(ROUTES.SETTINGS)}
-            style={[styles.settingsIconBtn, { backgroundColor: tokens.surfaceSubtle }]}
+            style={[
+              styles.settingsIconBtn,
+              { backgroundColor: tokens.surfaceSubtle },
+            ]}
             accessibilityLabel="Settings"
           >
-            <Text style={styles.settingsIcon}>⚙️</Text>
+            <AppIcon style={styles.settingsIcon} name="settings" />
           </TouchableOpacity>
         </View>
       </View>
 
+<View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, marginBottom: 20, borderRadius: 16, backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1 }}><UserAvatar avatarId={controller.session?.user.avatarId} /><View style={{ flex: 1 }}><Text style={{ color: tokens.textMain, fontWeight: '700', fontSize: 17 }}>{controller.session?.user.displayName || 'Guest'}</Text><Text style={{ color: tokens.textMuted }}>{isGuest ? 'Guest account' : 'Registered account'}</Text></View></View>
       {/* Top Cards */}
-      <View style={styles.topCardsContainer}>
+      <View
+        style={[
+          styles.topCardsContainer,
+          wide && { flexDirection: 'row', alignItems: 'stretch' },
+        ]}
+      >
         {/* Join Meeting Hero Card */}
-        <View style={[styles.joinCard, { backgroundColor: tokens.primary }]}>
+        <View
+          style={[
+            styles.joinCard,
+            { backgroundColor: tokens.primary },
+            wide && { flex: 1 },
+          ]}
+        >
           <View style={styles.joinCardHeader}>
             <View style={styles.joinIconBox}>
-              <Text style={styles.joinIconText}>🔗</Text>
+              <AppIcon style={styles.joinIconText} name="link" />
             </View>
             <View style={styles.joinCardTitles}>
               <Text style={styles.joinCardTitle}>Join meeting</Text>
@@ -58,7 +107,7 @@ export const DashboardMobile: React.FC<ReturnType<typeof useDashboardController>
           <View style={styles.inputWrapper}>
             <TextInput
               placeholder="Enter meeting code or link"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#E0E7FF"
               value={controller.joinInput}
               onChangeText={controller.setJoinInput}
               style={styles.joinInput}
@@ -67,9 +116,14 @@ export const DashboardMobile: React.FC<ReturnType<typeof useDashboardController>
             <TouchableOpacity
               onPress={() => controller.handleJoinMeeting()}
               disabled={controller.isResolving}
+              accessibilityRole="button"
+              accessibilityLabel="Join meeting"
               style={[styles.joinSubmitBtn, { backgroundColor: '#FFFFFF' }]}
             >
-              <Text style={[styles.joinSubmitArrow, { color: tokens.primary }]}>→</Text>
+              <AppIcon
+                style={[styles.joinSubmitArrow, { color: tokens.primary }]}
+                name="arrow-right"
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -79,16 +133,29 @@ export const DashboardMobile: React.FC<ReturnType<typeof useDashboardController>
           <View
             style={[
               styles.createCard,
+              wide && { flex: 1 },
               { backgroundColor: tokens.surface, borderColor: tokens.border },
             ]}
           >
             <View style={styles.createCardTop}>
-              <View style={[styles.createIconBox, { backgroundColor: tokens.primaryLight }]}>
-                <Text style={[styles.createIconText, { color: tokens.primary }]}>＋</Text>
+              <View
+                style={[
+                  styles.createIconBox,
+                  { backgroundColor: tokens.primaryLight },
+                ]}
+              >
+                <AppIcon
+                  style={[styles.createIconText, { color: tokens.primary }]}
+                  name="plus"
+                />
               </View>
               <View style={styles.createTitles}>
-                <Text style={[styles.createTitle, { color: tokens.textMain }]}>Create meeting</Text>
-                <Text style={[styles.createSubtitle, { color: tokens.textMuted }]}>
+                <Text style={[styles.createTitle, { color: tokens.textMain }]}>
+                  Create meeting
+                </Text>
+                <Text
+                  style={[styles.createSubtitle, { color: tokens.textMuted }]}
+                >
                   Start a new meeting
                 </Text>
               </View>
@@ -96,70 +163,43 @@ export const DashboardMobile: React.FC<ReturnType<typeof useDashboardController>
 
             <View style={styles.quickActionsRow}>
               <TouchableOpacity
+                disabled={controller.isCreatingInstant}
                 onPress={controller.handleCreateInstantMeeting}
-                style={[styles.quickActionBtn, { backgroundColor: tokens.surfaceSubtle }]}
+                style={[
+                  styles.quickActionBtn,
+                  { backgroundColor: tokens.surfaceSubtle },
+                ]}
               >
-                <Text style={styles.quickActionIcon}>⚡</Text>
-                <Text style={[styles.quickActionLabel, { color: tokens.textMain }]}>Instant</Text>
+                <AppIcon style={styles.quickActionIcon} name="zap" />
+                <Text
+                  style={[styles.quickActionLabel, { color: tokens.textMain }]}
+                >
+                  Instant
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => controller.navigation.navigate(ROUTES.CREATE_MEETING)}
-                style={[styles.quickActionBtn, { backgroundColor: tokens.surfaceSubtle }]}
+                onPress={() =>
+                  controller.navigation.navigate(ROUTES.CREATE_MEETING)
+                }
+                style={[
+                  styles.quickActionBtn,
+                  { backgroundColor: tokens.surfaceSubtle },
+                ]}
               >
-                <Text style={styles.quickActionIcon}>📅</Text>
-                <Text style={[styles.quickActionLabel, { color: tokens.textMain }]}>Schedule</Text>
+                <AppIcon style={styles.quickActionIcon} name="calendar" />
+                <Text
+                  style={[styles.quickActionLabel, { color: tokens.textMain }]}
+                >
+                  Schedule
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
       </View>
 
-      {/* Upcoming Meetings Section */}
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: tokens.textMain }]}>Upcoming meetings</Text>
-        <TouchableOpacity onPress={controller.handleRefresh}>
-          <Text style={[styles.refreshText, { color: tokens.primary }]}>Refresh</Text>
-        </TouchableOpacity>
-      </View>
-
-      {controller.upcomingMeetings.length === 0 ? (
-        <EmptyState
-          icon="📅"
-          title="No upcoming meetings"
-          description="Schedule a meeting or join with a code or link above."
-        />
-      ) : (
-        controller.upcomingMeetings.map((item) => (
-          <MeetingCard
-            key={item.id}
-            meeting={item}
-            onJoin={controller.handleJoinMeeting}
-            onView={(id) => controller.navigation.navigate(ROUTES.MEETING_DETAILS, { meetingId: id })}
-          />
-        ))
-      )}
-
-      {/* Recent Meetings Section */}
-      <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-        <Text style={[styles.sectionTitle, { color: tokens.textMain }]}>Recent meetings</Text>
-      </View>
-
-      {controller.recentMeetings.length === 0 ? (
-        <EmptyState
-          icon="🕒"
-          title="No past meetings"
-          description="Ended and completed meetings will appear here."
-        />
-      ) : (
-        controller.recentMeetings.map((item) => (
-          <MeetingCard
-            key={item.id}
-            meeting={item}
-            onView={(id) => controller.navigation.navigate(ROUTES.MEETING_SUMMARY, { meetingId: id })}
-          />
-        ))
-      )}
+      <DashboardSections controller={controller} />
 
       {/* Developer Scenario Controls Modal */}
       <DevControlsModal
@@ -167,6 +207,7 @@ export const DashboardMobile: React.FC<ReturnType<typeof useDashboardController>
         onClose={() => controller.setDevModalVisible(false)}
       />
     </View>
+    </ScrollView>
   );
 };
 

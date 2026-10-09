@@ -39,7 +39,7 @@ Hosted adapter verification creates temporary host/guest accounts and checks mee
 5. Grant and revoke participant media permissions. Check chat, announcements, raised hands, locking, removal, and ending the meeting for everyone.
 6. Confirm the attendance summary.
 
-Email confirmation, password recovery email, emailed invitations, and push delivery remain deferred. Invitation links can be shared manually. Web integration is Phase 3.
+Email confirmation, password recovery email and emailed invitations remain deferred. Firebase invitation push is implemented; see [Firebase push](../FIREBASE_PUSH.md) for opt-in and device verification. Invitation links can also be shared manually.
 
 ## Android verification on D: (7 October 2026)
 
@@ -69,4 +69,10 @@ The device check found and fixed the mobile chat sheet overlapping Android's thr
 
 `mobile/scripts/device-test.mjs` is a development helper for temporary account setup, device inspection, test reads, media verification, and cleanup. Its credentials are stored only in ignored `mobile/.env.device-test`. It rejects failed UI dumps instead of reusing stale screen data. Do not commit local credential files.
 
-Android integration has passed the checks above. iOS compilation/device testing and its screen-sharing extension remain pending on a Mac. Email delivery and push delivery remain deferred. Web implementation is Phase 3.
+Android integration has passed the checks above. iOS compilation/device testing and its screen-sharing extension remain pending on a Mac. Email delivery remains deferred. Firebase invitation push is implemented; current receipt verification is documented separately in [Firebase push](../FIREBASE_PUSH.md). Web integration is deployed on Firebase Hosting.
+## Lucide icons and Android invitation push (8 October 2026)
+
+Mobile uses pinned lucide-react-native 1.53.0 and react-native-svg 15.15.5. src/components/icons/AppIcon.tsx provides themed SVG icons with consistent stroke widths and sizing. Dashboard actions, forms, navigation, empty states, meeting controls, participant controls and dialogs use semantic icon names. User-selected avatar artwork is preserved.
+
+A real Firebase background invitation reached the Redmi Note 9 Pro, and tapping it opened the correct Meeting Details screen. The phone's Do Not Disturb setting was restored after the visibility check; notification opt-in remains enabled. Temporary test records were removed. mobile/scripts/push-device-test.mjs supports setup, deliver and cleanup using the root .env; setup requires exactly one registered Android recipient to avoid targeting an unintended account.
+The final Lucide build was installed and its dashboard SVG rendering was verified on the phone. TypeScript, all 6 Jest suites (19 tests), and Android release builds passed. ESLint reported no errors.

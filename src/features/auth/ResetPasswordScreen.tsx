@@ -1,5 +1,7 @@
+import { feedback } from '../../services/feedback';
+import { AppIcon } from '../../components/icons/AppIcon';
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 import { ROUTES } from '../../constants/routes';
@@ -47,21 +49,21 @@ export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
     setLoading(false);
 
     if (res.success) {
-      Alert.alert('Password Updated', 'Your password has been reset successfully. Please log in.', [
+      feedback.alert('Password Updated', 'Your password has been reset successfully. Please log in.', [
         {
           text: 'Go to Log in',
           onPress: () => navigation.navigate(ROUTES.LOGIN),
         },
       ]);
     } else {
-      Alert.alert('Reset Failed', res.error.message);
+      feedback.alert('Reset Failed', res.error.message);
     }
   };
 
   const renderForm = (): React.ReactElement => (
     <View style={[styles.formCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-        <Text style={[styles.backIcon, { color: tokens.textMain }]}>‹</Text>
+        <AppIcon style={[styles.backIcon, { color: tokens.textMain }]} name="chevron-left" />
       </TouchableOpacity>
 
       <Text style={[styles.heading, { color: tokens.textMain }]}>Create a new password</Text>
@@ -71,7 +73,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
 
       <AppInput
         label="New password"
-        icon="🔒"
+        icon="lock"
         placeholder="Enter new password"
         isPassword
         value={password}
@@ -81,7 +83,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
 
       <AppInput
         label="Confirm new password"
-        icon="🔒"
+        icon="lock"
         placeholder="Repeat new password"
         isPassword
         value={confirmPassword}

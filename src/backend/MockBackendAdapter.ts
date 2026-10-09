@@ -239,7 +239,7 @@ export class MockBackendAdapter implements BackendAdapter {
 
     const verificationId = `verif-${Date.now()}`;
     mockDatabase.verificationCodes.set(verificationId, {
-      code: '123456',
+      code: '12345678',
       userId: id,
       expiresAt: Date.now() + 10 * 60 * 1000,
     });
@@ -323,12 +323,12 @@ export class MockBackendAdapter implements BackendAdapter {
 
     const record = mockDatabase.verificationCodes.get(payload.verificationId);
     if (!record) {
-      if (payload.code !== '123456') {
+      if (payload.code !== '12345678') {
         return {
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Invalid verification code. Use 123456 in mock mode.',
+            message: 'Invalid verification code. Use 12345678 in mock mode.',
             fieldErrors: [{ path: 'code', message: 'Incorrect code' }],
           },
           requestId: ctx.requestId,
@@ -348,12 +348,12 @@ export class MockBackendAdapter implements BackendAdapter {
           serverTime: this.getServerTime(),
         };
       }
-      if (record.code !== payload.code && payload.code !== '123456') {
+      if (record.code !== payload.code && payload.code !== '12345678') {
         return {
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Incorrect verification code. (Hint: 123456)',
+            message: 'Incorrect verification code. (Hint: 12345678)',
             fieldErrors: [{ path: 'code', message: 'Incorrect code' }],
           },
           requestId: ctx.requestId,
@@ -399,7 +399,7 @@ export class MockBackendAdapter implements BackendAdapter {
     const record = mockDatabase.verificationCodes.get(verificationId);
     const userId = record ? record.userId : 'user-new';
     mockDatabase.verificationCodes.set(verificationId, {
-      code: '123456',
+      code: '12345678',
       userId,
       expiresAt: Date.now() + 10 * 60 * 1000,
     });

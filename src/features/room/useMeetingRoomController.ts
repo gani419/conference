@@ -1,3 +1,4 @@
+import { feedback } from '../../services/feedback';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -44,10 +45,13 @@ export function useMeetingRoomController(meetingId: string) {
   const currentUserId = session?.user.id;
 
   // Real-time / polling queries
-  const { data: meeting, isLoading: isLoadingMeeting } =
-    useGetMeetingDetailsQuery(meetingId, {
-      pollingInterval: 5000,
-    });
+  const {
+    data: meeting,
+    isLoading: isLoadingMeeting,
+    refetch: refetchMeeting,
+  } = useGetMeetingDetailsQuery(meetingId, {
+    pollingInterval: 5000,
+  });
 
   const { data: storedParticipants = [], refetch: refetchParticipants } =
     useGetParticipantsQuery(meetingId, {
@@ -154,23 +158,50 @@ export function useMeetingRoomController(meetingId: string) {
   }, []);
   useEffect(() => {
     if (exitShown.current) return;
+    const exit = (summary: boolean) => {
+      if (exitShown.current) return;
+      exitShown.current = true;
+      void mediaService.disconnect();
+      if (summary) {
+        navigation.replace(ROUTES.MEETING_SUMMARY, { meetingId });
+      } else {
+        feedback.alert(
+          'Meeting access ended',
+          'You are no longer admitted to this meeting.',
+        );
+        navigation.replace(ROUTES.DASHBOARD);
+      }
+    };
     if (meeting?.status === 'ended' || meeting?.status === 'cancelled') {
-      exitShown.current = true;
+      exit(true);
+    } else if (myParticipant?.status === 'removed') {
+      exit(false);
+    } else if (myParticipant?.status === 'left') {
+      // Membership polls faster than meeting details. Ending a meeting marks
+      // participants left, so refresh its status before choosing an exit route.
       void mediaService.disconnect();
-      navigation.replace(ROUTES.MEETING_SUMMARY, { meetingId });
-    } else if (
-      myParticipant?.status === 'removed' ||
-      myParticipant?.status === 'left'
-    ) {
-      exitShown.current = true;
-      void mediaService.disconnect();
-      Alert.alert(
-        'Meeting access ended',
-        'You are no longer admitted to this meeting.',
-      );
-      navigation.replace(ROUTES.DASHBOARD);
+      let disposed = false;
+      void refetchMeeting()
+        .unwrap()
+        .then(fresh => {
+          if (!disposed)
+            exit(fresh.status === 'ended' || fresh.status === 'cancelled');
+        })
+        .catch(() => {
+          if (!disposed)
+            setMediaError('Could not confirm the meeting status. Retrying?');
+        });
+      return () => {
+        disposed = true;
+      };
     }
-  }, [meeting?.status, myParticipant?.status, meetingId, navigation]);
+  }, [
+    meeting?.status,
+    myParticipant?.status,
+    meetingId,
+    navigation,
+    refetchMeeting,
+  ]);
   useEffect(() => {
     setIsHandRaised(!!myParticipant?.media.isHandRaised);
   }, [myParticipant?.media.isHandRaised]);
@@ -239,7 +270,7 @@ export function useMeetingRoomController(meetingId: string) {
     async (permission: 'microphone' | 'camera' | 'screenShare' | 'chat') => {
       try {
         await requestPermission({ meetingId, permission }).unwrap();
-        Alert.alert(
+        feedback.alert(
           'Request Sent',
           `Your request for ${permission} permission has been sent to the host.`,
         );
@@ -248,7 +279,7 @@ export function useMeetingRoomController(meetingId: string) {
           typeof err === 'object' && err !== null && 'message' in err
             ? (err as { message: string }).message
             : 'Could not send permission request';
-        Alert.alert('Request Failed', msg);
+        feedback.alert('Request Failed', msg);
       }
     },
     [meetingId, requestPermission],
@@ -257,7 +288,7 @@ export function useMeetingRoomController(meetingId: string) {
   // Mic controls
   const handleToggleMic = useCallback(async () => {
     if (!myPermissions.microphone && !isHostOrCoHost) {
-      Alert.alert(
+      feedback.alert(
         'Permission Required',
         'Microphone is disabled by host. Request permission to speak?',
         [
@@ -274,7 +305,7 @@ export function useMeetingRoomController(meetingId: string) {
     try {
       if (await mediaService.toggleMicrophone(next)) setIsMicOn(next);
     } catch (error) {
-      Alert.alert(
+      feedback.alert(
         'Microphone',
         error instanceof Error ? error.message : 'Could not enable microphone',
       );
@@ -289,7 +320,7 @@ export function useMeetingRoomController(meetingId: string) {
   // Camera controls
   const handleToggleCamera = useCallback(async () => {
     if (!myPermissions.camera && !isHostOrCoHost) {
-      Alert.alert(
+      feedback.alert(
         'Permission Required',
         'Camera is disabled by host. Request permission to enable camera?',
         [
@@ -306,7 +337,7 @@ export function useMeetingRoomController(meetingId: string) {
     try {
       if (await mediaService.toggleCamera(next)) setIsCameraOn(next);
     } catch (error) {
-      Alert.alert(
+      feedback.alert(
         'Camera',
         error instanceof Error ? error.message : 'Could not enable camera',
       );
@@ -321,7 +352,7 @@ export function useMeetingRoomController(meetingId: string) {
   // Screen share controls
   const handleToggleScreenShare = useCallback(async () => {
     if (!myPermissions.screenShare && !isHostOrCoHost) {
-      Alert.alert(
+      feedback.alert(
         'Permission Required',
         'Screen sharing requires host permission. Request permission to share screen?',
         [
@@ -338,7 +369,7 @@ export function useMeetingRoomController(meetingId: string) {
     try {
       if (await mediaService.toggleScreenShare(next)) setIsScreenSharing(next);
     } catch (error) {
-      Alert.alert(
+      feedback.alert(
         'Screen sharing',
         error instanceof Error ? error.message : 'Could not share the screen',
       );
@@ -360,7 +391,7 @@ export function useMeetingRoomController(meetingId: string) {
       setIsHandRaised(!isHandRaised);
       void refetchParticipants();
     } catch {
-      Alert.alert('Error', 'Could not update raised hand');
+      feedback.alert('Error', 'Could not update raised hand');
     }
   }, [meetingId, isHandRaised, refetchParticipants]);
   const handleLowerHand = useCallback(
@@ -369,7 +400,7 @@ export function useMeetingRoomController(meetingId: string) {
         await conferenceCommand('lower_hand', { meetingId, participantId });
         void refetchParticipants();
       } catch {
-        Alert.alert('Error', 'Could not lower the raised hand');
+        feedback.alert('Error', 'Could not lower the raised hand');
       }
     },
     [meetingId, refetchParticipants],
@@ -379,7 +410,7 @@ export function useMeetingRoomController(meetingId: string) {
   const handleSendMessage = useCallback(
     async (text: string) => {
       if (!myPermissions.chat && !isHostOrCoHost) {
-        Alert.alert(
+        feedback.alert(
           'Chat Disabled',
           'Chat is disabled for participants in this meeting.',
         );
@@ -389,7 +420,7 @@ export function useMeetingRoomController(meetingId: string) {
         await sendChatMessage({ meetingId, content: text }).unwrap();
         return true;
       } catch {
-        Alert.alert('Error', 'Failed to send message');
+        feedback.alert('Error', 'Failed to send message');
         return false;
       }
     },
@@ -403,7 +434,7 @@ export function useMeetingRoomController(meetingId: string) {
         await conferenceCommand('send_announcement', { meetingId, content });
         return true;
       } catch {
-        Alert.alert('Error', 'Could not send announcement');
+        feedback.alert('Error', 'Could not send announcement');
         return false;
       }
     },
@@ -419,7 +450,7 @@ export function useMeetingRoomController(meetingId: string) {
         }).unwrap();
         refetchParticipants();
       } catch (err: unknown) {
-        Alert.alert('Error', 'Could not admit participant');
+        feedback.alert('Error', 'Could not admit participant');
       }
     },
     [meetingId, admitParticipant, refetchParticipants],
@@ -435,7 +466,7 @@ export function useMeetingRoomController(meetingId: string) {
         }).unwrap();
         refetchParticipants();
       } catch (err: unknown) {
-        Alert.alert('Error', 'Could not deny participant');
+        feedback.alert('Error', 'Could not deny participant');
       }
     },
     [meetingId, admitParticipant, refetchParticipants],
@@ -444,7 +475,7 @@ export function useMeetingRoomController(meetingId: string) {
   // Host moderation: Remove
   const handleRemoveParticipant = useCallback(
     async (participantId: string) => {
-      Alert.alert(
+      feedback.alert(
         'Remove Participant',
         'Are you sure you want to remove this participant from the meeting?',
         [
@@ -458,7 +489,7 @@ export function useMeetingRoomController(meetingId: string) {
                 setSelectedParticipant(null);
                 refetchParticipants();
               } catch {
-                Alert.alert('Error', 'Could not remove participant');
+                feedback.alert('Error', 'Could not remove participant');
               }
             },
           },
@@ -479,14 +510,14 @@ export function useMeetingRoomController(meetingId: string) {
         }).unwrap();
         setSelectedParticipant(null);
         refetchParticipants();
-        Alert.alert(
+        feedback.alert(
           'Role Updated',
           `Participant role changed to ${
             newRole === 'co_host' ? 'Co-Host' : 'Participant'
           }.`,
         );
       } catch {
-        Alert.alert('Error', 'Could not change participant role');
+        feedback.alert('Error', 'Could not change participant role');
       }
     },
     [meetingId, changeParticipantRole, refetchParticipants],
@@ -504,7 +535,7 @@ export function useMeetingRoomController(meetingId: string) {
         setSelectedParticipant(null);
         refetchParticipants();
       } catch {
-        Alert.alert('Error', 'Could not mute participant');
+        feedback.alert('Error', 'Could not mute participant');
       }
     },
     [meetingId, updateParticipantPermissions, refetchParticipants],
@@ -512,7 +543,7 @@ export function useMeetingRoomController(meetingId: string) {
 
   // Host moderation: Bulk mute all
   const handleMuteAll = useCallback(async () => {
-    Alert.alert('Mute All', 'Mute microphones for all participants?', [
+    feedback.alert('Mute All', 'Mute microphones for all participants?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Mute All',
@@ -523,9 +554,9 @@ export function useMeetingRoomController(meetingId: string) {
               action: { kind: 'mute_all' },
             }).unwrap();
             refetchParticipants();
-            Alert.alert('Success', 'All participants have been muted.');
+            feedback.alert('Success', 'All participants have been muted.');
           } catch {
-            Alert.alert('Error', 'Failed to mute all');
+            feedback.alert('Error', 'Failed to mute all');
           }
         },
       },
@@ -534,7 +565,7 @@ export function useMeetingRoomController(meetingId: string) {
 
   // Host moderation: Bulk stop cameras
   const handleStopAllCameras = useCallback(async () => {
-    Alert.alert(
+    feedback.alert(
       'Disable All Cameras',
       'Turn off cameras for all participants?',
       [
@@ -548,9 +579,9 @@ export function useMeetingRoomController(meetingId: string) {
                 action: { kind: 'stop_all_cameras' },
               }).unwrap();
               refetchParticipants();
-              Alert.alert('Success', 'All participant cameras disabled.');
+              feedback.alert('Success', 'All participant cameras disabled.');
             } catch {
-              Alert.alert('Error', 'Failed to disable cameras');
+              feedback.alert('Error', 'Failed to disable cameras');
             }
           },
         },
@@ -577,7 +608,7 @@ export function useMeetingRoomController(meetingId: string) {
         refetchPermissions();
         refetchParticipants();
       } catch {
-        Alert.alert('Error', 'Could not update request decision');
+        feedback.alert('Error', 'Could not update request decision');
       }
     },
     [
@@ -597,13 +628,13 @@ export function useMeetingRoomController(meetingId: string) {
       }).unwrap();
       setIsLocked(!isLocked);
     } catch {
-      Alert.alert('Error', 'Could not change the meeting lock');
+      feedback.alert('Error', 'Could not change the meeting lock');
     }
   }, [isLocked, meetingId, bulkUpdatePermissions]);
 
   // Leave meeting (self)
   const handleLeaveMeeting = useCallback(() => {
-    Alert.alert(
+    feedback.alert(
       'Leave Meeting',
       'Are you sure you want to leave this meeting?',
       [
@@ -617,7 +648,7 @@ export function useMeetingRoomController(meetingId: string) {
               await mediaService.disconnect();
               navigation.replace(ROUTES.DASHBOARD);
             } catch {
-              Alert.alert(
+              feedback.alert(
                 'Error',
                 'Could not leave the meeting. Please retry.',
               );
@@ -630,7 +661,7 @@ export function useMeetingRoomController(meetingId: string) {
 
   // End meeting for everyone (Host only)
   const handleEndMeetingForAll = useCallback(() => {
-    Alert.alert(
+    feedback.alert(
       'End Meeting for All',
       'This will disconnect all participants and conclude the meeting.',
       [
@@ -648,7 +679,7 @@ export function useMeetingRoomController(meetingId: string) {
                 typeof err === 'object' && err !== null && 'message' in err
                   ? (err as { message: string }).message
                   : 'Failed to end meeting';
-              Alert.alert('Error', msg);
+              feedback.alert('Error', msg);
             }
           },
         },

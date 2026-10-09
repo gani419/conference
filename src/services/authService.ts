@@ -1,3 +1,4 @@
+import { disablePush } from './pushService';
 import { backend } from '../backend';
 import { ApiResult, RequestContext } from '../types/common';
 import {
@@ -106,6 +107,7 @@ export const authService = {
 
   async logout(): Promise<void> {
     if (ENV.backendMode === 'supabase') {
+      await disablePush();
       const { error } = await supabase.auth.signOut({ scope: 'local' });
       if (error) throw error;
       clearMeetingPreviews();

@@ -86,3 +86,8 @@ yarn-error.log
 **/supabase/.branches/
 backend/livekit/generated/
 src/config/publicEnvironment.generated.ts
+
+# Firebase local deployment caches and CLI logs
+/.firebase/
+firebase-debug.log*
+/android/app/google-services.json

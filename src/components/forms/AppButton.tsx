@@ -1,3 +1,4 @@
+import { AppIcon } from '../icons/AppIcon';
 import React from 'react';
 import { TouchableOpacity, Text, ActivityIndicator, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
@@ -100,7 +101,7 @@ export const AppButton: React.FC<AppButtonProps> = ({
         <ActivityIndicator color={getTextColor()} size="small" />
       ) : (
         <>
-          {icon && <Text style={[styles.icon, { marginRight: 8 }]}>{icon}</Text>}
+          {icon && <AppIcon style={[styles.icon, { marginRight: 8 }]} name={icon} color={getTextColor()} />}
           <Text
             style={[
               styles.text,

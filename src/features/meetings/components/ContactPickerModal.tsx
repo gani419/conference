@@ -1,3 +1,4 @@
+import { AppIcon } from '../../../components/icons/AppIcon';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
@@ -98,7 +99,7 @@ export const ContactPickerModal: React.FC<ContactPickerModalProps> = ({
         ? normalizePhoneToE164(c.phoneNumbers[0].number) ?? undefined
         : undefined;
 
-      if (!primaryEmail && !primaryPhone) {
+      if (!primaryEmail) {
         continue;
       }
 
@@ -115,7 +116,7 @@ export const ContactPickerModal: React.FC<ContactPickerModalProps> = ({
         displayName: c.displayName,
         role,
         ...(primaryEmail ? { email: primaryEmail } : {}),
-        ...(primaryPhone ? { phoneE164: primaryPhone } : {}),
+
       });
     }
 
@@ -193,20 +194,16 @@ export const ContactPickerModal: React.FC<ContactPickerModalProps> = ({
                         ? tokens.surfaceActive
                         : tokens.surface,
                     },
-                    isAlreadyAdded && styles.contactDisabled,
+                    (isAlreadyAdded || !email) && styles.contactDisabled,
                   ]}
-                  disabled={Boolean(isAlreadyAdded)}
+                  disabled={Boolean(isAlreadyAdded) || !email}
                   onPress={() => toggleSelect(item.recordID)}
                 >
                   <View style={styles.checkbox}>
-                    <Text
-                      style={[
+                    <AppIcon style={[
                         styles.checkIcon,
                         { color: isSelected ? tokens.primary : tokens.borderSubtle },
-                      ]}
-                    >
-                      {isSelected ? '☑' : '☐'}
-                    </Text>
+                      ]} name={isSelected ? 'square-check' : 'square'} />
                   </View>
                   <View style={styles.contactInfo}>
                     <Text
@@ -256,21 +253,22 @@ export const ContactPickerModal: React.FC<ContactPickerModalProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
+    flexShrink: 1,
     gap: 12,
     maxHeight: 480,
   },
   roleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 8,
   },
   roleLabel: {
     fontSize: 13,
     fontWeight: '600',
   },
   segmentedWrap: {
-    flex: 1,
+    width: '100%',
   },
   centerContainer: {
     height: 180,

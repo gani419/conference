@@ -1,5 +1,7 @@
+import { ToastHost } from '../feedback/ToastHost';
+import { AppIcon } from '../icons/AppIcon';
 import React from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, StyleSheet, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 
 export interface ModalDialogProps {
@@ -39,6 +41,7 @@ export const ModalDialog: React.FC<ModalDialogProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Pressable style={styles.overlay} onPress={onClose} testID={testID}>
         <Pressable
           style={[styles.dialogCard, { backgroundColor: tokens.surface }]}
@@ -46,7 +49,7 @@ export const ModalDialog: React.FC<ModalDialogProps> = ({
         >
           {icon && (
             <View style={[styles.iconContainer, { backgroundColor: tokens.primaryLight }]}>
-              <Text style={styles.iconText}>{icon}</Text>
+              <AppIcon style={styles.iconText} name={icon} />
             </View>
           )}
 
@@ -55,7 +58,7 @@ export const ModalDialog: React.FC<ModalDialogProps> = ({
             <Text style={[styles.description, { color: tokens.textMuted }]}>{description}</Text>
           ) : null}
 
-          {children}
+          {children && <View style={{ width: '100%', flexShrink: 1 }}>{children}</View>}
 
           {extraContent && <View style={styles.extraContent}>{extraContent}</View>}
 
@@ -91,6 +94,8 @@ export const ModalDialog: React.FC<ModalDialogProps> = ({
           ) : null}
         </Pressable>
       </Pressable>
+      <ToastHost />
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -105,7 +110,8 @@ const styles = StyleSheet.create({
   },
   dialogCard: {
     width: '100%',
-    maxWidth: 420,
+    maxWidth: 560,
+    maxHeight: '90%',
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',

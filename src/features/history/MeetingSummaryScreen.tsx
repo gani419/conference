@@ -1,3 +1,4 @@
+import { UserAvatar } from '../../components/feedback/UserAvatar';
 import React from 'react';
 import {
   View,
@@ -16,7 +17,6 @@ import { AppButton } from '../../components/forms/AppButton';
 import { StatusBadge } from '../../components/feedback/StatusBadge';
 import { useGetMeetingSummaryQuery } from '../../api/appApi';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
-import { getAvatarDefinition } from '../../constants/avatars';
 
 type MeetingSummaryRouteProp = RouteProp<RootStackParamList, typeof ROUTES.MEETING_SUMMARY>;
 
@@ -118,7 +118,6 @@ export const MeetingSummaryScreen: React.FC = () => {
           ) : (
             <View style={styles.recordsList}>
               {summary.attendanceRecords.map((record) => {
-                const avatarDef = getAvatarDefinition(record.avatarId);
                 return (
                   <View
                     key={record.participantId}
@@ -127,14 +126,7 @@ export const MeetingSummaryScreen: React.FC = () => {
                       { borderColor: tokens.borderSubtle, backgroundColor: tokens.surfaceSubtle },
                     ]}
                   >
-                    <View
-                      style={[
-                        styles.avatarWrap,
-                        { backgroundColor: avatarDef.backgroundColor },
-                      ]}
-                    >
-                      <Text style={styles.avatarEmoji}>{avatarDef.emoji}</Text>
-                    </View>
+                    <UserAvatar avatarId={record.avatarId} size={44} />
 
                     <View style={styles.recordInfo}>
                       <Text style={[styles.recordName, { color: tokens.textMain }]}>

@@ -1,3 +1,4 @@
+import { AppIcon } from '../../components/icons/AppIcon';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -85,9 +86,9 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
               style={[styles.pillBadge, { backgroundColor: '#8b5cf6' }]}
               onPress={() => c.setActivePanel('hands')}
             >
-              <Text style={styles.pillBadgeText}>
-                ✋ {c.raisedHandParticipants.length}
-              </Text>
+              <View style={{flexDirection:'row',alignItems:'center',gap:6}}><AppIcon name='hand' size={16} /><Text style={styles.pillBadgeText}>
+                 {c.raisedHandParticipants.length}
+              </Text></View>
             </TouchableOpacity>
           )}
         </View>
@@ -174,7 +175,8 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
           c.setActivePanel((prev) => (prev === 'participants' ? 'none' : 'participants'))
         }
         onToggleRaiseHand={c.handleToggleRaiseHand}
-        onLeavePress={c.isHostOrCoHost?c.handleEndMeetingForAll:c.handleLeaveMeeting}
+        onLeavePress={c.handleLeaveMeeting}
+        onEndMeetingPress={c.handleEndMeetingForAll}
         onMuteAll={c.isHostOrCoHost ? c.handleMuteAll : undefined}
         onStopCameras={c.isHostOrCoHost ? c.handleStopAllCameras : undefined}
         onToggleLockEntry={c.isHostOrCoHost ? c.handleToggleLockMeeting : undefined}
@@ -207,7 +209,7 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
                     Waiting in Lobby
                   </Text>
                   <TouchableOpacity onPress={() => c.setActivePanel('none')}>
-                    <Text style={[styles.closeText, { color: tokens.textMuted }]}>✕</Text>
+                    <AppIcon style={[styles.closeText, { color: tokens.textMuted }]} name="x" />
                   </TouchableOpacity>
                 </View>
                 <LobbyApprovalSheet
@@ -225,7 +227,7 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
                     Permission Requests
                   </Text>
                   <TouchableOpacity onPress={() => c.setActivePanel('none')}>
-                    <Text style={[styles.closeText, { color: tokens.textMuted }]}>✕</Text>
+                    <AppIcon style={[styles.closeText, { color: tokens.textMuted }]} name="x" />
                   </TouchableOpacity>
                 </View>
                 <PermissionRequestsSheet
@@ -243,7 +245,7 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
                     Raised Hands
                   </Text>
                   <TouchableOpacity onPress={() => c.setActivePanel('none')}>
-                    <Text style={[styles.closeText, { color: tokens.textMuted }]}>✕</Text>
+                    <AppIcon style={[styles.closeText, { color: tokens.textMuted }]} name="x" />
                   </TouchableOpacity>
                 </View>
                 <RaisedHandsQueue
@@ -260,7 +262,7 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
                     Participants ({c.inMeetingParticipants.length})
                   </Text>
                   <TouchableOpacity onPress={() => c.setActivePanel('none')}>
-                    <Text style={[styles.closeText, { color: tokens.textMuted }]}>✕</Text>
+                    <AppIcon style={[styles.closeText, { color: tokens.textMuted }]} name="x" />
                   </TouchableOpacity>
                 </View>
                 <ScrollView style={styles.participantScroll}>
@@ -283,7 +285,7 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
                             style={[styles.miniBtn, { backgroundColor: tokens.surfaceSubtle }]}
                             onPress={() => c.handleMuteParticipant(p.id)}
                           >
-                            <Text style={styles.miniBtnText}>🔇</Text>
+                            <AppIcon style={styles.miniBtnText} name="mic-off" />
                           </TouchableOpacity>
                           {c.myRole === 'host' && (
                             <TouchableOpacity
@@ -304,7 +306,7 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
                               }
                             >
                               <Text style={styles.miniBtnText}>
-                                {p.role === 'co_host' ? '⭐ Co-Host' : '☆ Make Co-Host'}
+                                {p.role === 'co_host' ? ' Co-Host' : ' Make Co-Host'}
                               </Text>
                             </TouchableOpacity>
                           )}
@@ -312,9 +314,7 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
                             style={[styles.miniBtn, { backgroundColor: tokens.dangerSurface }]}
                             onPress={() => c.handleRemoveParticipant(p.id)}
                           >
-                            <Text style={[styles.miniBtnText, { color: tokens.danger }]}>
-                              ✕
-                            </Text>
+                            <AppIcon style={[styles.miniBtnText, { color: tokens.danger }]} name="x" />
                           </TouchableOpacity>
                         </View>
                       )}
@@ -359,9 +359,9 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
                   c.handleMuteParticipant(c.selectedParticipant!.id);
                 }}
               >
-                <Text style={[styles.actionText, { color: tokens.textMain }]}>
-                  🔇 Mute Participant
-                </Text>
+                <View style={{flexDirection:'row',alignItems:'center',gap:6}}><AppIcon name='mic-off' size={16} /><Text style={[styles.actionText, { color: tokens.textMain }]}>
+                   Mute Participant
+                </Text></View>
               </TouchableOpacity>
 
               {c.myRole === 'host' && (
@@ -391,7 +391,7 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
                 }}
               >
                 <Text style={[styles.actionText, { color: tokens.textMain }]}>
-                  📌 Pin to Main Stage
+                   Pin to Main Stage
                 </Text>
               </TouchableOpacity>
 
@@ -402,7 +402,7 @@ export const MeetingRoomMobile: React.FC<ReturnType<typeof useMeetingRoomControl
                 }}
               >
                 <Text style={[styles.actionText, { color: tokens.danger }]}>
-                  🚫 Remove from Meeting
+                   Remove from Meeting
                 </Text>
               </TouchableOpacity>
             </View>

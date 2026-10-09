@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { UserMeetingRole, ParticipantPermissions } from '../../types/meeting';
-
+import { AppIcon } from '../icons/AppIcon';
 export interface ControlBarProps {
   userRole: UserMeetingRole;
   myPermissions: ParticipantPermissions;
@@ -20,6 +21,7 @@ export interface ControlBarProps {
   onToggleChatPanel: () => void | Promise<void>;
   onToggleParticipantsPanel: () => void | Promise<void>;
   onToggleRaiseHand: () => void | Promise<void>;
+  onEndMeetingPress?: (() => void | Promise<void>) | undefined;
   onLeavePress: () => void | Promise<void>;
 
   // Host bulk actions
@@ -30,283 +32,34 @@ export interface ControlBarProps {
   onBroadcastAnnouncement?: (() => void) | (() => Promise<void>) | undefined;
 }
 
-export const ControlBar: React.FC<ControlBarProps> = ({
-  userRole,
-  myPermissions,
-  isMicOn,
-  isCameraOn,
-  isScreenSharing,
-  isHandRaised,
-  activePanelTab,
-  onToggleMic,
-  onRequestMicPermission,
-  onToggleCamera,
-  onRequestCameraPermission,
-  onToggleScreenShare,
-  onRequestScreenSharePermission,
-  onToggleChatPanel,
-  onToggleParticipantsPanel,
-  onToggleRaiseHand,
-  onLeavePress,
-  onMuteAll,
-  onStopCameras,
-  onToggleLockEntry,
-  isLocked = false,
-  onBroadcastAnnouncement,
-}) => {
+
+export const ControlBar: React.FC<ControlBarProps> = props => {
   const { tokens } = useResolvedTheme();
-  const isHost = userRole === 'host' || userRole === 'co_host';
-
-  return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: tokens.surface,
-          borderTopColor: tokens.border,
-        },
-      ]}
-    >
-      {/* Mic Button */}
-      <TouchableOpacity
-        onPress={myPermissions.microphone ? onToggleMic : onRequestMicPermission}
-        style={[
-          styles.actionItem,
-          !myPermissions.microphone && styles.actionItemRestricted,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel="Microphone"
-      >
-        <View
-          style={[
-            styles.iconCircle,
-            {
-              backgroundColor: !myPermissions.microphone
-                ? tokens.surfaceSubtle
-                : isMicOn
-                ? tokens.primaryLight
-                : tokens.dangerBg,
-            },
-          ]}
-        >
-          <Text style={styles.iconEmoji}>
-            {!myPermissions.microphone ? '🔒' : isMicOn ? '🎙️' : '🔇'}
-          </Text>
-        </View>
-        <Text style={[styles.actionLabel, { color: tokens.textMain }]}>
-          {!myPermissions.microphone ? 'Request Mic' : isMicOn ? 'Mute' : 'Unmute'}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Camera Button */}
-      <TouchableOpacity
-        onPress={myPermissions.camera ? onToggleCamera : onRequestCameraPermission}
-        style={[
-          styles.actionItem,
-          !myPermissions.camera && styles.actionItemRestricted,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel="Camera"
-      >
-        <View
-          style={[
-            styles.iconCircle,
-            {
-              backgroundColor: !myPermissions.camera
-                ? tokens.surfaceSubtle
-                : isCameraOn
-                ? tokens.primaryLight
-                : tokens.dangerBg,
-            },
-          ]}
-        >
-          <Text style={styles.iconEmoji}>
-            {!myPermissions.camera ? '🔒' : isCameraOn ? '📹' : '🚫'}
-          </Text>
-        </View>
-        <Text style={[styles.actionLabel, { color: tokens.textMain }]}>
-          {!myPermissions.camera ? 'Request Cam' : isCameraOn ? 'Stop Video' : 'Start Video'}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Screen Share Button */}
-      <TouchableOpacity
-        onPress={myPermissions.screenShare ? onToggleScreenShare : onRequestScreenSharePermission}
-        style={styles.actionItem}
-        accessibilityRole="button"
-        accessibilityLabel="Screen share"
-      >
-        <View
-          style={[
-            styles.iconCircle,
-            {
-              backgroundColor: isScreenSharing ? tokens.primary : tokens.surfaceSubtle,
-            },
-          ]}
-        >
-          <Text style={styles.iconEmoji}>🖥️</Text>
-        </View>
-        <Text style={[styles.actionLabel, { color: tokens.textMain }]}>
-          {isScreenSharing ? 'Sharing' : 'Share'}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Chat Button */}
-      <TouchableOpacity
-        onPress={onToggleChatPanel}
-        style={styles.actionItem}
-        accessibilityRole="button"
-        accessibilityLabel="Chat"
-      >
-        <View
-          style={[
-            styles.iconCircle,
-            {
-              backgroundColor: activePanelTab === 'chat' ? tokens.primaryLight : tokens.surfaceSubtle,
-            },
-          ]}
-        >
-          <Text style={styles.iconEmoji}>💬</Text>
-        </View>
-        <Text style={[styles.actionLabel, { color: tokens.textMain }]}>Chat</Text>
-      </TouchableOpacity>
-
-      {/* Participants Button */}
-      <TouchableOpacity
-        onPress={onToggleParticipantsPanel}
-        style={styles.actionItem}
-        accessibilityRole="button"
-        accessibilityLabel="Participants"
-      >
-        <View
-          style={[
-            styles.iconCircle,
-            {
-              backgroundColor:
-                activePanelTab === 'participants' || activePanelTab === 'requests'
-                  ? tokens.primaryLight
-                  : tokens.surfaceSubtle,
-            },
-          ]}
-        >
-          <Text style={styles.iconEmoji}>👥</Text>
-        </View>
-        <Text style={[styles.actionLabel, { color: tokens.textMain }]}>People</Text>
-      </TouchableOpacity>
-
-      {/* Raise Hand (Participants) or Host Actions (Mute all / Lock / Broadcast) */}
-      {!isHost ? (
-        <TouchableOpacity
-          onPress={onToggleRaiseHand}
-          style={styles.actionItem}
-          accessibilityRole="button"
-          accessibilityLabel="Raise hand"
-        >
-          <View
-            style={[
-              styles.iconCircle,
-              {
-                backgroundColor: isHandRaised ? '#FEF08A' : tokens.surfaceSubtle,
-              },
-            ]}
-          >
-            <Text style={styles.iconEmoji}>✋</Text>
-          </View>
-          <Text style={[styles.actionLabel, { color: tokens.textMain }]}>
-            {isHandRaised ? 'Lower' : 'Raise'}
-          </Text>
-        </TouchableOpacity>
-      ) : (
-        <>
-          {onMuteAll && (
-            <TouchableOpacity
-              onPress={onMuteAll}
-              style={styles.actionItem}
-              accessibilityRole="button"
-              accessibilityLabel="Mute all"
-            >
-              <View style={[styles.iconCircle, { backgroundColor: tokens.surfaceSubtle }]}>
-                <Text style={styles.iconEmoji}>🔇</Text>
-              </View>
-              <Text style={[styles.actionLabel, { color: tokens.textMain }]}>Mute all</Text>
-            </TouchableOpacity>
-          )}
-
-          {onBroadcastAnnouncement && (
-            <TouchableOpacity
-              onPress={onBroadcastAnnouncement}
-              style={styles.actionItem}
-              accessibilityRole="button"
-              accessibilityLabel="Broadcast announcement"
-            >
-              <View style={[styles.iconCircle, { backgroundColor: tokens.surfaceSubtle }]}>
-                <Text style={styles.iconEmoji}>📢</Text>
-              </View>
-              <Text style={[styles.actionLabel, { color: tokens.textMain }]}>Broadcast</Text>
-            </TouchableOpacity>
-          )}
-          {onStopCameras&&<TouchableOpacity onPress={onStopCameras} style={styles.actionItem} accessibilityRole="button" accessibilityLabel="Stop all cameras">
-            <Text style={[styles.actionLabel,{color:tokens.textMain}]}>Stop cameras</Text>
-          </TouchableOpacity>}
-          {onToggleLockEntry&&<TouchableOpacity onPress={onToggleLockEntry} style={styles.actionItem} accessibilityRole="button" accessibilityLabel={isLocked?'Unlock meeting':'Lock meeting'}>
-            <Text style={[styles.actionLabel,{color:tokens.textMain}]}>{isLocked?'Unlock':'Lock'}</Text>
-          </TouchableOpacity>}
-        </>
-      )}
-
-      {/* Leave / End Button */}
-      <TouchableOpacity
-        onPress={onLeavePress}
-        style={styles.actionItem}
-        accessibilityRole="button"
-        accessibilityLabel={isHost ? 'End meeting' : 'Leave meeting'}
-      >
-        <View style={[styles.iconCircle, { backgroundColor: tokens.danger }]}>
-          <Text style={styles.leaveIcon}>📞</Text>
-        </View>
-        <Text style={[styles.actionLabel, { color: tokens.danger }]}>
-          {isHost ? 'End' : 'Leave'}
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
+  const { width } = useLayoutMode();
+  const compact = width < 600;
+  const host = props.userRole === 'host' || props.userRole === 'co_host';
+  type Action = { label: string; icon: string; onPress: () => void | Promise<void>; active?: boolean; danger?: boolean };
+  const actions: Action[] = [
+    { label: !props.myPermissions.microphone ? 'Request microphone' : props.isMicOn ? 'Mute microphone' : 'Unmute microphone', icon: props.isMicOn ? 'mic' : 'mic-off', onPress: props.myPermissions.microphone ? props.onToggleMic : props.onRequestMicPermission, active: props.isMicOn },
+    { label: !props.myPermissions.camera ? 'Request camera' : props.isCameraOn ? 'Stop camera' : 'Start camera', icon: props.isCameraOn ? 'video' : 'video-off', onPress: props.myPermissions.camera ? props.onToggleCamera : props.onRequestCameraPermission, active: props.isCameraOn },
+    { label: props.isScreenSharing ? 'Stop sharing' : 'Share screen', icon: 'monitor-up', onPress: props.myPermissions.screenShare ? props.onToggleScreenShare : props.onRequestScreenSharePermission, active: props.isScreenSharing },
+    { label: 'Chat', icon: 'message-circle', onPress: props.onToggleChatPanel, active: props.activePanelTab === 'chat' },
+    { label: 'Participants', icon: 'users', onPress: props.onToggleParticipantsPanel, active: props.activePanelTab === 'participants' },
+    { label: props.isHandRaised ? 'Lower hand' : 'Raise hand', icon: 'hand', onPress: props.onToggleRaiseHand, active: props.isHandRaised },
+  ];
+  if (host) {
+    if (props.onMuteAll) actions.push({ label: 'Mute all', icon: 'mic-off', onPress: props.onMuteAll });
+    if (props.onStopCameras) actions.push({ label: 'Stop all cameras', icon: 'video-off', onPress: props.onStopCameras });
+    if (props.onToggleLockEntry) actions.push({ label: props.isLocked ? 'Unlock meeting' : 'Lock meeting', icon: props.isLocked ? 'unlock' : 'lock', onPress: props.onToggleLockEntry });
+    if (props.onBroadcastAnnouncement) actions.push({ label: 'Announcement', icon: 'megaphone', onPress: props.onBroadcastAnnouncement });
+  }
+  actions.push({ label: 'Leave meeting', icon: 'phone-off', onPress: props.onLeavePress, danger: true });
+  if (host && props.onEndMeetingPress) actions.push({ label: 'End for everyone', icon: 'circle-stop', onPress: props.onEndMeetingPress, danger: true });
+  return <View style={[styles.container, { backgroundColor: tokens.surface, borderTopColor: tokens.border }]}>
+    {actions.map(action => <TouchableOpacity key={action.label} accessibilityRole="button" accessibilityLabel={action.label} accessibilityState={{ selected: !!action.active }} onPress={action.onPress} style={[styles.item, compact ? styles.compactItem : styles.wideItem]}>
+      <View style={[styles.icon, { backgroundColor: action.danger ? tokens.dangerBg : action.active ? tokens.primaryLight : tokens.surfaceSubtle }]}><AppIcon name={action.icon} size={23} color={action.danger ? tokens.danger : action.active ? tokens.primary : tokens.textMain} /></View>
+      {!compact && <Text style={[styles.label, { color: action.danger ? tokens.danger : tokens.textMain }]}>{action.label}</Text>}
+    </TouchableOpacity>)}
+  </View>;
 };
-
-const styles = StyleSheet.create({
-  container: {
-    height: 78,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    borderTopWidth: 1,
-  },
-  actionItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-  },
-  actionItemRestricted: {
-    opacity: 0.85,
-  },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  iconEmoji: {
-    fontSize: 20,
-  },
-  leaveIcon: {
-    fontSize: 20,
-    transform: [{ rotate: '135deg' }],
-  },
-  actionLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-});
+const styles = StyleSheet.create({ container: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, rowGap: 8 }, item: { alignItems: 'center', justifyContent: 'center', gap: 6, padding: 4 }, compactItem: { width: '25%' }, wideItem: { minWidth: 90, flexGrow: 1, flexBasis: 90 }, icon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, label: { fontSize: 11, fontWeight: '600', textAlign: 'center' } });

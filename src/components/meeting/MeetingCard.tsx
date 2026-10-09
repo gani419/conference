@@ -1,9 +1,13 @@
+import { AppIcon } from '../icons/AppIcon';
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MeetingListItem } from '../../types/meeting';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 import { StatusBadge } from '../feedback/StatusBadge';
-import { formatMeetingDateTime, getCountdownToMeeting } from '../../utils/dates';
+import {
+  formatMeetingDateTime,
+  getCountdownToMeeting,
+} from '../../utils/dates';
 import { AVATARS } from '../../constants/avatars';
 
 export interface MeetingCardProps {
@@ -21,8 +25,14 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
 }) => {
   const { tokens } = useResolvedTheme();
 
-  const formattedDate = formatMeetingDateTime(meeting.scheduledStartTime, meeting.timezone);
-  const countdown = getCountdownToMeeting(meeting.scheduledStartTime, currentServerTime);
+  const formattedDate = formatMeetingDateTime(
+    meeting.scheduledStartTime,
+    meeting.timezone,
+  );
+  const countdown = getCountdownToMeeting(
+    meeting.scheduledStartTime,
+    currentServerTime,
+  );
   const isEligible = meeting.canJoin;
 
   return (
@@ -35,26 +45,30 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
         },
       ]}
     >
-      <View style={styles.topRow}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Open ${meeting.title}`} disabled={!onView} onPress={() => onView?.(meeting.id)} style={styles.topRow}>
         <View style={styles.titleInfo}>
-          <Text style={[styles.title, { color: tokens.textMain }]} numberOfLines={1}>
+          <Text
+            style={[styles.title, { color: tokens.textMain }]}
+            numberOfLines={1}
+          >
             {meeting.title}
           </Text>
           <View style={styles.dateRow}>
-            <Text style={styles.calendarIcon}>📅</Text>
+            <AppIcon style={styles.calendarIcon} name="calendar" />
             <Text style={[styles.dateText, { color: tokens.textMuted }]}>
               {formattedDate}
             </Text>
           </View>
         </View>
         <StatusBadge variant={meeting.status} />
-      </View>
+      </TouchableOpacity>
 
       <View style={styles.bottomRow}>
         {/* Avatar Stack */}
         <View style={styles.avatarStack}>
           {meeting.participantAvatars.slice(0, 3).map((avatarId, idx) => {
-            const avatarDef = AVATARS.find((a) => a.id === avatarId) ?? AVATARS[0];
+            const avatarDef =
+              AVATARS.find(a => a.id === avatarId) ?? AVATARS[0];
             return (
               <View
                 key={`${avatarId}-${idx}`}
@@ -67,9 +81,7 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
                   },
                 ]}
               >
-                <Text style={styles.stackedInitials}>
-                  {avatarDef?.initials ?? 'U'}
-                </Text>
+                <AppIcon name="user" color={avatarDef?.textColor ?? '#FFFFFF'} size={17} />
               </View>
             );
           })}
@@ -77,7 +89,10 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
             <View
               style={[
                 styles.stackedBadge,
-                { backgroundColor: tokens.surfaceSubtle, borderColor: tokens.surface },
+                {
+                  backgroundColor: tokens.surfaceSubtle,
+                  borderColor: tokens.surface,
+                },
               ]}
             >
               <Text style={[styles.stackedCount, { color: tokens.textMuted }]}>
@@ -91,13 +106,26 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
         <View style={styles.actionContainer}>
           {meeting.status === 'live' || meeting.status === 'scheduled' ? (
             <View style={styles.joinBtnGroup}>
+              {onView && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  onPress={() => onView(meeting.id)}
+                  style={[styles.viewBtn, { borderColor: tokens.border }]}
+                >
+                  <Text style={[styles.viewBtnText, { color: tokens.primary }]}>
+                    Open meeting
+                  </Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 onPress={() => onJoin && onJoin(meeting.id)}
                 disabled={!isEligible}
                 style={[
                   styles.actionBtn,
                   {
-                    backgroundColor: isEligible ? tokens.primary : tokens.surfaceSubtle,
+                    backgroundColor: isEligible
+                      ? tokens.primary
+                      : tokens.surfaceSubtle,
                   },
                 ]}
               >
@@ -112,7 +140,9 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
               </TouchableOpacity>
               {!isEligible && (
                 <Text style={[styles.unlockHint, { color: tokens.textSubtle }]}>
-                  {countdown.label === 'Now' ? 'Starts soon' : `Unlocks ${countdown.label}`}
+                  {countdown.label === 'Now'
+                    ? 'Starts soon'
+                    : `Unlocks ${countdown.label}`}
                 </Text>
               )}
             </View>
@@ -121,7 +151,9 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
               onPress={() => onView && onView(meeting.id)}
               style={[styles.viewBtn, { borderColor: tokens.border }]}
             >
-              <Text style={[styles.viewBtnText, { color: tokens.primary }]}>View</Text>
+              <Text style={[styles.viewBtnText, { color: tokens.primary }]}>
+                View
+              </Text>
             </TouchableOpacity>
           )}
         </View>

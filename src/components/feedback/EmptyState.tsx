@@ -1,3 +1,4 @@
+import { AppIcon } from '../icons/AppIcon';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
@@ -12,7 +13,7 @@ export interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  icon = '📭',
+  icon = "inbox",
   title,
   description,
   actionText,
@@ -22,7 +23,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.icon}>{icon}</Text>
+      <AppIcon style={styles.icon} name={icon} />
       <Text style={[styles.title, { color: tokens.textMain }]}>{title}</Text>
       <Text style={[styles.description, { color: tokens.textMuted }]}>{description}</Text>
       {actionText && onAction && (

@@ -1,3 +1,6 @@
+import { DateTimeField } from '../../components/forms/DateTimeField';
+import { feedback } from '../../services/feedback';
+import { AppIcon } from '../../components/icons/AppIcon';
 import React, { useState } from 'react';
 import {
   View,
@@ -6,9 +9,8 @@ import {
   ScrollView,
   Switch,
   TouchableOpacity,
-  Alert,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+  } from 'react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 import { ROUTES } from '../../constants/routes';
@@ -28,19 +30,21 @@ import { createMeetingPayloadSchema } from '../../schemas/meetingSchemas';
 import { ZodIssue } from 'zod';
 
 export const CreateMeetingScreen: React.FC = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, typeof ROUTES.CREATE_MEETING>>();
   const { tokens } = useResolvedTheme();
-  const session = useAppSelector((state) => state.auth.session);
+  const session = useAppSelector(state => state.auth.session);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [timingKind, setTimingKind] = useState<'instant' | 'scheduled'>('scheduled');
-
-  // Scheduled date calculations
-  const [scheduledDateOffset, setScheduledDateOffset] = useState<number>(30); // minutes from now
-  const [customTimezone, setCustomTimezone] = useState<string>(
-    Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+  const [timingKind, setTimingKind] = useState<'instant' | 'scheduled'>(
+    route.params?.timingKind || 'scheduled',
   );
+
+  const [scheduledStart, setScheduledStart] = useState(() => new Date(Math.ceil((Date.now()+60000)/60000)*60000));
+  const [expiresAt, setExpiresAt] = useState(() => new Date(Date.now()+2*60*60*1000));
+  const customTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
   const [guestAccess, setGuestAccess] = useState(true);
   const [micPerm, setMicPerm] = useState(false);
@@ -58,21 +62,24 @@ export const CreateMeetingScreen: React.FC = () => {
 
   const isGuestSession = session?.kind === 'guest';
 
-  const computeStartsAt = (minutesFromNow: number): string => {
-    const d = new Date(Date.now() + minutesFromNow * 60 * 1000);
-    return d.toISOString();
-  };
 
   const handleAddInvitee = (invitee: InviteePayload) => {
-    setInvitees((prev) => {
+    setInvitees(prev => {
       // Check duplicate
       const exists = prev.some(
-        (i) =>
-          (i.email && invitee.email && i.email.toLowerCase() === invitee.email.toLowerCase()) ||
-          (i.phoneE164 && invitee.phoneE164 && i.phoneE164 === invitee.phoneE164),
+        i =>
+          (i.email &&
+            invitee.email &&
+            i.email.toLowerCase() === invitee.email.toLowerCase()) ||
+          (i.phoneE164 &&
+            invitee.phoneE164 &&
+            i.phoneE164 === invitee.phoneE164),
       );
       if (exists) {
-        Alert.alert('Duplicate Contact', 'This person is already invited to the meeting.');
+        feedback.alert(
+          'Duplicate Contact',
+          'This person is already invited to the meeting.',
+        );
         return prev;
       }
       return [...prev, invitee];
@@ -80,11 +87,16 @@ export const CreateMeetingScreen: React.FC = () => {
   };
 
   const handleAddMultipleInvitees = (newInvitees: InviteePayload[]) => {
-    setInvitees((prev) => {
-      const existingEmails = new Set(prev.map((i) => i.email?.toLowerCase()).filter(Boolean));
-      const existingPhones = new Set(prev.map((i) => i.phoneE164).filter(Boolean));
-      const filtered = newInvitees.filter((inv) => {
-        if (inv.email && existingEmails.has(inv.email.toLowerCase())) return false;
+    setInvitees(prev => {
+      const existingEmails = new Set(
+        prev.map(i => i.email?.toLowerCase()).filter(Boolean),
+      );
+      const existingPhones = new Set(
+        prev.map(i => i.phoneE164).filter(Boolean),
+      );
+      const filtered = newInvitees.filter(inv => {
+        if (inv.email && existingEmails.has(inv.email.toLowerCase()))
+          return false;
         if (inv.phoneE164 && existingPhones.has(inv.phoneE164)) return false;
         return true;
       });
@@ -93,12 +105,12 @@ export const CreateMeetingScreen: React.FC = () => {
   };
 
   const handleRemoveInvitee = (clientId: string) => {
-    setInvitees((prev) => prev.filter((i) => i.clientId !== clientId));
+    setInvitees(prev => prev.filter(i => i.clientId !== clientId));
   };
 
   const handleToggleInviteeRole = (clientId: string) => {
-    setInvitees((prev) =>
-      prev.map((i) =>
+    setInvitees(prev =>
+      prev.map(i =>
         i.clientId === clientId
           ? { ...i, role: i.role === 'co_host' ? 'guest' : 'co_host' }
           : i,
@@ -108,7 +120,10 @@ export const CreateMeetingScreen: React.FC = () => {
 
   const handleSubmit = async () => {
     if (isGuestSession) {
-      Alert.alert('Restricted', 'Guests cannot create meetings. Please log in or register.');
+      feedback.alert(
+        'Restricted',
+        'Guests cannot create meetings. Please log in or register.',
+      );
       return;
     }
 
@@ -119,7 +134,7 @@ export const CreateMeetingScreen: React.FC = () => {
         ? { kind: 'instant' }
         : {
             kind: 'scheduled',
-            startsAt: computeStartsAt(scheduledDateOffset),
+            startsAt: scheduledStart.toISOString(),
             timezone: customTimezone,
           };
 
@@ -127,6 +142,7 @@ export const CreateMeetingScreen: React.FC = () => {
       title,
       description,
       timing,
+      expiresAt: expiresAt.toISOString(),
       guestAccess,
       defaultPermissions: {
         microphone: micPerm,
@@ -137,6 +153,9 @@ export const CreateMeetingScreen: React.FC = () => {
       invitees,
     };
 
+    const start = timingKind === 'instant' ? Date.now() : scheduledStart.getTime();
+    if (timingKind === 'scheduled' && start <= Date.now()) { setErrors({ timing: 'Choose a start time in the future.' }); return; }
+    if (expiresAt.getTime() <= start) { setErrors({ expiresAt: 'Expiry must be later than the start time.' }); return; }
     const parsed = createMeetingPayloadSchema.safeParse(payload);
     if (!parsed.success) {
       const errMap: Record<string, string> = {};
@@ -152,9 +171,13 @@ export const CreateMeetingScreen: React.FC = () => {
       const res = await createMeeting(parsed.data).unwrap();
       if (res.meeting) {
         if (timingKind === 'instant') {
-          navigation.replace(ROUTES.MEETING_ROOM, { meetingId: res.meeting.id });
+          navigation.replace(ROUTES.MEETING_ROOM, {
+            meetingId: res.meeting.id,
+          });
         } else {
-          navigation.replace(ROUTES.MEETING_DETAILS, { meetingId: res.meeting.id });
+          navigation.replace(ROUTES.MEETING_DETAILS, {
+            meetingId: res.meeting.id,
+          });
         }
       }
     } catch (err: unknown) {
@@ -162,37 +185,60 @@ export const CreateMeetingScreen: React.FC = () => {
         typeof err === 'object' && err !== null && 'message' in err
           ? (err as { message: string }).message
           : 'Could not create meeting';
-      Alert.alert('Error', msg);
+      feedback.alert('Error', msg);
     }
   };
 
   return (
-    <ScreenContainer scrollable={false} padded={false} testID="create-meeting-screen">
+    <ScreenContainer
+      scrollable={false}
+      padded={false}
+      testID="create-meeting-screen"
+    >
       <HeaderBar
-        title="Schedule Meeting"
+        title={timingKind === 'instant' ? 'Create instant meeting' : 'Schedule meeting'}
         showBack
         onBack={() => navigation.goBack()}
       />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         {isGuestSession && (
-          <View style={[styles.guestWarning, { backgroundColor: tokens.warningSurface }]}>
+          <View
+            style={[
+              styles.guestWarning,
+              { backgroundColor: tokens.warningSurface },
+            ]}
+          >
             <Text style={[styles.guestWarningText, { color: tokens.warning }]}>
-              ⚠️ Guest users cannot create meetings. Please register an account to host meetings.
+              Guest users cannot create meetings. Please register an account
+              to host meetings.
             </Text>
           </View>
         )}
 
         {/* Meeting Details Card */}
-        <View style={[styles.card, { backgroundColor: tokens.surface, borderColor: tokens.borderSubtle }]}>
-          <Text style={[styles.cardTitle, { color: tokens.textMain }]}>Meeting Details</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: tokens.surface,
+              borderColor: tokens.borderSubtle,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: tokens.textMain }]}>
+            Meeting Details
+          </Text>
 
           <AppInput
             label="Meeting Title *"
             value={title}
-            onChangeText={(val) => {
+            onChangeText={val => {
               setTitle(val);
-              if (errors.title) setErrors((prev) => ({ ...prev, title: '' }));
+              if (errors.title) setErrors(prev => ({ ...prev, title: '' }));
             }}
             placeholder="e.g. Q3 Strategic Planning"
             error={errors.title}
@@ -209,76 +255,44 @@ export const CreateMeetingScreen: React.FC = () => {
           />
 
           <View style={styles.fieldGroup}>
-            <Text style={[styles.fieldLabel, { color: tokens.textMuted }]}>Meeting Type</Text>
+            <Text style={[styles.fieldLabel, { color: tokens.textMuted }]}>
+              Meeting Type
+            </Text>
             <SegmentedControl
               options={[
                 { label: 'Scheduled', value: 'scheduled' },
                 { label: 'Instant', value: 'instant' },
               ]}
               selectedValue={timingKind}
-              onSelect={(val) => setTimingKind(val as 'instant' | 'scheduled')}
+              onSelect={val => setTimingKind(val as 'instant' | 'scheduled')}
             />
           </View>
 
-          {timingKind === 'scheduled' && (
-            <View style={styles.scheduledSettings}>
-              <Text style={[styles.fieldLabel, { color: tokens.textMuted }]}>Start Time Preset</Text>
-              <View style={styles.timingPresets}>
-                {[
-                  { label: 'In 15m', minutes: 15 },
-                  { label: 'In 30m', minutes: 30 },
-                  { label: 'In 1 Hour', minutes: 60 },
-                  { label: 'Tomorrow', minutes: 1440 },
-                ].map((preset) => (
-                  <TouchableOpacity
-                    key={preset.label}
-                    onPress={() => setScheduledDateOffset(preset.minutes)}
-                    style={[
-                      styles.presetChip,
-                      {
-                        borderColor:
-                          scheduledDateOffset === preset.minutes
-                            ? tokens.primary
-                            : tokens.borderSubtle,
-                        backgroundColor:
-                          scheduledDateOffset === preset.minutes
-                            ? tokens.surfaceActive
-                            : tokens.surfaceSubtle,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.presetChipText,
-                        {
-                          color:
-                            scheduledDateOffset === preset.minutes
-                              ? tokens.primary
-                              : tokens.textMain,
-                          fontWeight:
-                            scheduledDateOffset === preset.minutes ? '700' : '400',
-                        },
-                      ]}
-                    >
-                      {preset.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <Text style={[styles.scheduledInfo, { color: tokens.textMuted }]}>
-                Starts at: {new Date(Date.now() + scheduledDateOffset * 60 * 1000).toLocaleString()} ({customTimezone})
-              </Text>
-            </View>
-          )}
+          {timingKind === 'scheduled' && <DateTimeField label="Start time" value={scheduledStart} minimumDate={new Date()} onChange={date => { setScheduledStart(date); if (expiresAt <= date) setExpiresAt(new Date(date.getTime()+7200000)); }} />}
+          <DateTimeField label="Meeting expiry" value={expiresAt} minimumDate={timingKind === 'scheduled' ? scheduledStart : new Date()} onChange={setExpiresAt} />
+          <Text style={{ color: tokens.textMuted }}>You can leave and rejoin until this time. End for everyone closes the meeting earlier.</Text>
+          {!!(errors.timing || errors.expiresAt) && <Text style={{ color: tokens.danger }}>{errors.timing || errors.expiresAt}</Text>}
         </View>
 
         {/* Security & Default Permissions */}
-        <View style={[styles.card, { backgroundColor: tokens.surface, borderColor: tokens.borderSubtle }]}>
-          <Text style={[styles.cardTitle, { color: tokens.textMain }]}>Security & Permissions</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: tokens.surface,
+              borderColor: tokens.borderSubtle,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: tokens.textMain }]}>
+            Security & Permissions
+          </Text>
 
           <View style={styles.toggleRow}>
             <View style={styles.toggleInfo}>
-              <Text style={[styles.toggleLabel, { color: tokens.textMain }]}>Guest Access</Text>
+              <Text style={[styles.toggleLabel, { color: tokens.textMain }]}>
+                Guest Access
+              </Text>
               <Text style={[styles.toggleSub, { color: tokens.textMuted }]}>
                 Allow users to join without an account using a display name
               </Text>
@@ -290,7 +304,9 @@ export const CreateMeetingScreen: React.FC = () => {
             />
           </View>
 
-          <View style={[styles.divider, { backgroundColor: tokens.borderSubtle }]} />
+          <View
+            style={[styles.divider, { backgroundColor: tokens.borderSubtle }]}
+          />
 
           <Text style={[styles.sectionSubtitle, { color: tokens.textMuted }]}>
             Default Participant Permissions (upon entry)
@@ -298,48 +314,70 @@ export const CreateMeetingScreen: React.FC = () => {
 
           <View style={styles.permissionGrid}>
             <View style={styles.toggleRow}>
-              <Text style={[styles.toggleLabel, { color: tokens.textMain }]}>🎤 Microphone</Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}><AppIcon name="mic" size={16} /><Text style={[styles.toggleLabel, { color: tokens.textMain }]}>Microphone</Text></View>
               <Switch
                 value={micPerm}
                 onValueChange={setMicPerm}
-                trackColor={{ false: tokens.surfaceSubtle, true: tokens.primary }}
+                trackColor={{
+                  false: tokens.surfaceSubtle,
+                  true: tokens.primary,
+                }}
               />
             </View>
 
             <View style={styles.toggleRow}>
-              <Text style={[styles.toggleLabel, { color: tokens.textMain }]}>📹 Camera</Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}><AppIcon name="camera" size={16} /><Text style={[styles.toggleLabel, { color: tokens.textMain }]}>Camera</Text></View>
               <Switch
                 value={camPerm}
                 onValueChange={setCamPerm}
-                trackColor={{ false: tokens.surfaceSubtle, true: tokens.primary }}
+                trackColor={{
+                  false: tokens.surfaceSubtle,
+                  true: tokens.primary,
+                }}
               />
             </View>
 
             <View style={styles.toggleRow}>
-              <Text style={[styles.toggleLabel, { color: tokens.textMain }]}>🖥️ Screen Sharing</Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}><AppIcon name="screen-share" size={16} /><Text style={[styles.toggleLabel, { color: tokens.textMain }]}>Screen Sharing</Text></View>
               <Switch
                 value={screenSharePerm}
                 onValueChange={setScreenSharePerm}
-                trackColor={{ false: tokens.surfaceSubtle, true: tokens.primary }}
+                trackColor={{
+                  false: tokens.surfaceSubtle,
+                  true: tokens.primary,
+                }}
               />
             </View>
 
             <View style={styles.toggleRow}>
-              <Text style={[styles.toggleLabel, { color: tokens.textMain }]}>💬 Chat Messaging</Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}><AppIcon name="message-circle" size={16} /><Text style={[styles.toggleLabel, { color: tokens.textMain }]}>Chat Messaging</Text></View>
               <Switch
                 value={chatPerm}
                 onValueChange={setChatPerm}
-                trackColor={{ false: tokens.surfaceSubtle, true: tokens.primary }}
+                trackColor={{
+                  false: tokens.surfaceSubtle,
+                  true: tokens.primary,
+                }}
               />
             </View>
           </View>
         </View>
 
         {/* Invitees Card */}
-        <View style={[styles.card, { backgroundColor: tokens.surface, borderColor: tokens.borderSubtle }]}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: tokens.surface,
+              borderColor: tokens.borderSubtle,
+            },
+          ]}
+        >
           <View style={styles.inviteeHeader}>
             <View>
-              <Text style={[styles.cardTitle, { color: tokens.textMain }]}>Invitees</Text>
+              <Text style={[styles.cardTitle, { color: tokens.textMain }]}>
+                Invitees
+              </Text>
               <Text style={[styles.cardSub, { color: tokens.textMuted }]}>
                 {invitees.length} person{invitees.length === 1 ? '' : 's'} added
               </Text>
@@ -348,54 +386,70 @@ export const CreateMeetingScreen: React.FC = () => {
 
           <View style={styles.inviteeActionsRow}>
             <TouchableOpacity
-              style={[styles.inviteeActionBtn, { backgroundColor: tokens.surfaceSubtle }]}
+              style={[
+                styles.inviteeActionBtn,
+                { backgroundColor: tokens.surfaceSubtle },
+              ]}
               onPress={() => setAddPersonVisible(true)}
             >
-              <Text style={[styles.inviteeActionText, { color: tokens.textMain }]}>
-                ➕ Manual
-              </Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}><AppIcon name="plus" size={16} /><Text style={[styles.inviteeActionText, { color: tokens.textMain }]}>Manual</Text></View>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.inviteeActionBtn, { backgroundColor: tokens.surfaceSubtle }]}
+              style={[
+                styles.inviteeActionBtn,
+                { backgroundColor: tokens.surfaceSubtle },
+              ]}
               onPress={() => setContactPickerVisible(true)}
             >
-              <Text style={[styles.inviteeActionText, { color: tokens.textMain }]}>
-                📱 Contacts
-              </Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}><AppIcon name="contact" size={16} /><Text style={[styles.inviteeActionText, { color: tokens.textMain }]}>Contacts</Text></View>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.inviteeActionBtn, { backgroundColor: tokens.surfaceSubtle }]}
+              style={[
+                styles.inviteeActionBtn,
+                { backgroundColor: tokens.surfaceSubtle },
+              ]}
               onPress={() => setCsvImportVisible(true)}
             >
-              <Text style={[styles.inviteeActionText, { color: tokens.textMain }]}>
-                📄 CSV Import
-              </Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}><AppIcon name="file-up" size={16} /><Text style={[styles.inviteeActionText, { color: tokens.textMain }]}>CSV Import</Text></View>
             </TouchableOpacity>
           </View>
 
           {invitees.length === 0 ? (
             <View style={styles.emptyInvitees}>
-              <Text style={[styles.emptyInviteesText, { color: tokens.textMuted }]}>
-                No invitees added yet. You can also share the meeting link once created.
+              <Text
+                style={[styles.emptyInviteesText, { color: tokens.textMuted }]}
+              >
+                No invitees added yet. You can also share the meeting link once
+                created.
               </Text>
             </View>
           ) : (
             <View style={styles.inviteeList}>
-              {invitees.map((item) => (
+              {invitees.map(item => (
                 <View
                   key={item.clientId}
                   style={[
                     styles.inviteeItem,
-                    { borderColor: tokens.borderSubtle, backgroundColor: tokens.surfaceSubtle },
+                    {
+                      borderColor: tokens.borderSubtle,
+                      backgroundColor: tokens.surfaceSubtle,
+                    },
                   ]}
                 >
                   <View style={styles.inviteeInfo}>
-                    <Text style={[styles.inviteeName, { color: tokens.textMain }]}>
+                    <Text
+                      style={[styles.inviteeName, { color: tokens.textMain }]}
+                    >
                       {item.displayName}
                     </Text>
-                    <Text style={[styles.inviteeContact, { color: tokens.textMuted }]}>
+                    <Text
+                      style={[
+                        styles.inviteeContact,
+                        { color: tokens.textMuted },
+                      ]}
+                    >
                       {item.email || item.phoneE164}
                     </Text>
                   </View>
@@ -407,7 +461,9 @@ export const CreateMeetingScreen: React.FC = () => {
                         styles.roleChip,
                         {
                           backgroundColor:
-                            item.role === 'co_host' ? tokens.primarySurface : tokens.surface,
+                            item.role === 'co_host'
+                              ? tokens.primarySurface
+                              : tokens.surface,
                         },
                       ]}
                     >
@@ -416,7 +472,9 @@ export const CreateMeetingScreen: React.FC = () => {
                           styles.roleChipText,
                           {
                             color:
-                              item.role === 'co_host' ? tokens.primary : tokens.textMuted,
+                              item.role === 'co_host'
+                                ? tokens.primary
+                                : tokens.textMuted,
                           },
                         ]}
                       >
@@ -428,7 +486,10 @@ export const CreateMeetingScreen: React.FC = () => {
                       onPress={() => handleRemoveInvitee(item.clientId)}
                       style={styles.removeBtn}
                     >
-                      <Text style={[styles.removeBtnText, { color: tokens.danger }]}>✕</Text>
+                      <AppIcon
+                        style={[styles.removeBtnText, { color: tokens.danger }]}
+                        name="x"
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -440,7 +501,11 @@ export const CreateMeetingScreen: React.FC = () => {
         {/* Submit Button */}
         <View style={styles.submitSection}>
           <AppButton
-            title={timingKind === 'instant' ? 'Start Instant Meeting' : 'Schedule Meeting'}
+            title={
+              timingKind === 'instant'
+                ? 'Start Instant Meeting'
+                : 'Schedule Meeting'
+            }
             onPress={handleSubmit}
             variant="primary"
             loading={isLoading}
@@ -475,6 +540,9 @@ export const CreateMeetingScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   scrollContent: {
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
     padding: 16,
     gap: 16,
     paddingBottom: 40,

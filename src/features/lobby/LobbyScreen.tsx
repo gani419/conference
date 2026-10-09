@@ -1,5 +1,7 @@
+import { feedback } from '../../services/feedback';
+import { UserAvatar } from '../../components/feedback/UserAvatar';
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, Text, StyleSheet } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createLocalVideoTrack, LocalVideoTrack } from 'livekit-client';
@@ -31,7 +33,7 @@ export const LobbyScreen: React.FC = () => {
     { meetingId },
     { pollingInterval: 3000 },
   );
-  const { data: participants = [] } = useGetParticipantsQuery(meetingId, {
+  const { data: participants = [], refetch: refetchParticipants } = useGetParticipantsQuery(meetingId, {
     pollingInterval: 2000,
   });
   const [joinMeeting, { isLoading: isJoining }] = useJoinMeetingMutation();
@@ -69,7 +71,7 @@ export const LobbyScreen: React.FC = () => {
     ) {
       navigating.current = true;
       previewRef.current?.stop();
-      Alert.alert(
+      feedback.alert(
         'Meeting unavailable',
         'Your entry was declined or the meeting has ended.',
       );
@@ -93,7 +95,7 @@ export const LobbyScreen: React.FC = () => {
       previewRef.current = track;
       setPreview(track);
     } catch (error) {
-      Alert.alert(
+      feedback.alert(
         'Camera',
         error instanceof Error ? error.message : 'Camera preview unavailable',
       );
@@ -108,12 +110,16 @@ export const LobbyScreen: React.FC = () => {
       const joined = await joinMeeting({ meetingId }).unwrap();
       setRequested(true);
       if (!joined.requiresLobby && joined.meeting.status === 'live') {
+        // The room must see the fresh admission, rather than a cached left record.
+        const fresh = await refetchParticipants().unwrap();
+        if (navigating.current || !mounted.current) return;
+        if (!fresh.some(person => person.userId === session?.user.id && person.status === 'in_meeting')) return;
         navigating.current = true;
         stopPreview();
         navigation.replace(ROUTES.MEETING_ROOM, { meetingId });
       }
     } catch (error) {
-      Alert.alert(
+      feedback.alert(
         'Join failed',
         typeof error === 'object' && error !== null && 'message' in error
           ? String(error.message)
@@ -128,7 +134,7 @@ export const LobbyScreen: React.FC = () => {
       stopPreview();
       navigation.replace(ROUTES.DASHBOARD);
     } catch {
-      Alert.alert('Error', 'Could not cancel your join request. Please retry.');
+      feedback.alert('Error', 'Could not cancel your join request. Please retry.');
     }
   };
   const stream = preview?.mediaStream as unknown as
@@ -138,7 +144,11 @@ export const LobbyScreen: React.FC = () => {
   return (
     <ScreenContainer scrollable={false} padded={false} testID="lobby-screen">
       <HeaderBar title="Meeting lobby" showBack onBack={leave} />
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
+        {!!meeting?.expiresAt && <Text style={{ color: tokens.textMuted }}>Active until {new Date(meeting.expiresAt).toLocaleString()}</Text>}
+        <Text style={{ color: tokens.textMain }}>Active now: {participants.filter(person => person.status === 'in_meeting').length || meeting?.activeParticipantCount || 0}</Text>
+        {participants.filter(person => person.status === 'in_meeting').map(person => <View key={person.id} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}><UserAvatar avatarId={person.avatarId} size={32} /><Text style={{ color: tokens.textMain }}>{person.displayName}</Text></View>)}
+
         <Text style={[styles.title, { color: tokens.textMain }]}>
           {meeting?.title || 'Meeting'}
         </Text>
@@ -198,12 +208,12 @@ export const LobbyScreen: React.FC = () => {
           variant="secondary"
           onPress={leave}
         />
-      </View>
+      </ScrollView>
     </ScreenContainer>
   );
 };
 const styles = StyleSheet.create({
-  content: { flex: 1, padding: 24, gap: 18, justifyContent: 'center' },
+  content: { flexGrow: 1, width: '100%', maxWidth: 900, alignSelf: 'center', padding: 24, gap: 18, justifyContent: 'center' },
   title: { fontSize: 22, fontWeight: '700' },
   preview: {
     height: 260,

@@ -1,5 +1,7 @@
+import { feedback } from '../../services/feedback';
+import { AppIcon } from '../../components/icons/AppIcon';
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 import { ROUTES } from '../../constants/routes';
@@ -20,13 +22,15 @@ export const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
   const { isCompact } = useLayoutMode();
   const dispatch = useAppDispatch();
 
-  const [identifier, setIdentifier] = useState(storageService.getAuthIdentifierDraft() || '');
+  const [identifier, setIdentifier] = useState(
+    storageService.getAuthIdentifierDraft() || '',
+  );
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const pendingMeetingId = route.params?.pendingMeetingId;
-  const pendingMeetingCode=route.params?.pendingMeetingCode;
+  const pendingMeetingCode = route.params?.pendingMeetingCode;
 
   const handleLogin = async (): Promise<void> => {
     setError(null);
@@ -42,7 +46,10 @@ export const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
     setLoading(true);
     storageService.setAuthIdentifierDraft(identifier.trim());
 
-    const authIdentifier = { kind: 'email' as const, email: identifier.trim().toLowerCase() };
+    const authIdentifier = {
+      kind: 'email' as const,
+      email: identifier.trim().toLowerCase(),
+    };
 
     const result = await authService.login({
       identifier: authIdentifier,
@@ -53,29 +60,45 @@ export const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
 
     if (result.success) {
       dispatch(setSession(result.data.session));
-      if(pendingMeetingCode) {
-        navigation.replace(ROUTES.JOIN_LINK,{code:pendingMeetingCode});
+      if (pendingMeetingCode) {
+        navigation.replace(ROUTES.JOIN_LINK, { code: pendingMeetingCode });
       } else if (pendingMeetingId) {
-        navigation.replace(ROUTES.MEETING_DETAILS, { meetingId: pendingMeetingId });
+        navigation.replace(ROUTES.MEETING_DETAILS, {
+          meetingId: pendingMeetingId,
+        });
       } else {
         navigation.replace(ROUTES.HOME);
       }
+    } else if (result.error.code === 'EMAIL_NOT_CONFIRMED') {
+      navigation.navigate(ROUTES.VERIFY_CONTACT, {
+        verificationId: authIdentifier.email,
+        contactDestination: authIdentifier.email,
+        pendingMeetingId,
+        pendingMeetingCode,
+      });
     } else {
       setError(result.error.message);
-      Alert.alert('Login Failed', result.error.message);
+      feedback.alert('Login Failed', result.error.message);
     }
   };
 
   const renderForm = (): React.ReactElement => (
-    <View style={[styles.formCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-      <Text style={[styles.heading, { color: tokens.textMain }]}>Welcome back</Text>
+    <View
+      style={[
+        styles.formCard,
+        { backgroundColor: tokens.surface, borderColor: tokens.border },
+      ]}
+    >
+      <Text style={[styles.heading, { color: tokens.textMain }]}>
+        Welcome back
+      </Text>
       <Text style={[styles.subheading, { color: tokens.textMuted }]}>
         Sign in to your meeting account.
       </Text>
 
       <AppInput
         label="Email"
-        icon="✉️"
+        icon="mail"
         placeholder="alex@company.com"
         value={identifier}
         onChangeText={setIdentifier}
@@ -85,7 +108,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
 
       <AppInput
         label="Password"
-        icon="🔒"
+        icon="lock"
         placeholder="Enter your password"
         isPassword
         value={password}
@@ -93,13 +116,24 @@ export const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
       />
 
       <TouchableOpacity
-        onPress={() => Alert.alert('Password recovery', 'Password recovery will be available after email delivery is configured.')}
+        onPress={() =>
+          feedback.alert(
+            'Password recovery',
+            'Password recovery will be available after email delivery is configured.',
+          )
+        }
         style={styles.forgotBtn}
       >
-        <Text style={[styles.forgotText, { color: tokens.primary }]}>Forgot password?</Text>
+        <Text style={[styles.forgotText, { color: tokens.primary }]}>
+          Forgot password?
+        </Text>
       </TouchableOpacity>
 
-      {error ? <Text style={[styles.errorBanner, { color: tokens.danger }]}>{error}</Text> : null}
+      {error ? (
+        <Text style={[styles.errorBanner, { color: tokens.danger }]}>
+          {error}
+        </Text>
+      ) : null}
 
       <AppButton
         title="Log in"
@@ -109,36 +143,58 @@ export const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
       />
 
       <View style={styles.dividerRow}>
-        <View style={[styles.dividerLine, { backgroundColor: tokens.border }]} />
-        <Text style={[styles.dividerText, { color: tokens.textMuted }]}>or</Text>
-        <View style={[styles.dividerLine, { backgroundColor: tokens.border }]} />
+        <View
+          style={[styles.dividerLine, { backgroundColor: tokens.border }]}
+        />
+        <Text style={[styles.dividerText, { color: tokens.textMuted }]}>
+          or
+        </Text>
+        <View
+          style={[styles.dividerLine, { backgroundColor: tokens.border }]}
+        />
       </View>
 
       <AppButton
         title="Create account"
         variant="secondary"
-        onPress={() => navigation.navigate(ROUTES.REGISTER, { pendingMeetingId, pendingMeetingCode })}
+        onPress={() =>
+          navigation.navigate(ROUTES.REGISTER, {
+            pendingMeetingId,
+            pendingMeetingCode,
+          })
+        }
         style={styles.secondaryBtn}
       />
 
       <AppButton
         title="Continue as guest"
         variant="outline"
-        icon="👤"
-        onPress={() => navigation.navigate(ROUTES.GUEST_SETUP, { pendingMeetingId, pendingMeetingCode })}
+        icon="user"
+        onPress={() =>
+          navigation.navigate(ROUTES.GUEST_SETUP, {
+            pendingMeetingId,
+            pendingMeetingCode,
+          })
+        }
         style={styles.secondaryBtn}
       />
     </View>
   );
 
   const renderSideIllustration = (): React.ReactElement => (
-    <View style={[styles.illustrationCard, { backgroundColor: tokens.primaryLight }]}>
-      <Text style={styles.illustrationEmoji}>🤝</Text>
+    <View
+      style={[
+        styles.illustrationCard,
+        { backgroundColor: tokens.primaryLight },
+      ]}
+    >
+      <AppIcon style={styles.illustrationEmoji} name="handshake" />
       <Text style={[styles.illustrationTitle, { color: tokens.primary }]}>
         Host with confidence
       </Text>
       <Text style={[styles.illustrationSubtitle, { color: tokens.textMuted }]}>
-        Bringing people together for clearer conversations and better meeting outcomes.
+        Bringing people together for clearer conversations and better meeting
+        outcomes.
       </Text>
     </View>
   );

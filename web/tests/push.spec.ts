@@ -1,3 +1,4 @@
+import { createConfirmedTestAccount } from '../../backend/scripts/test-accounts.mjs';
 import { test, expect } from '@playwright/test';
 import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
@@ -70,14 +71,8 @@ test('real FCM web invitation reaches an opted-in account and logout unregisters
   try {
     for (const name of ['host', 'recipient']) {
       const email = 'push-' + name + '-' + tag + '@example.com';
-      const created = await api('auth/v1/signup', {
-        email,
-        password,
-        data: { displayName: 'Push ' + name, avatarId: 'avatar-1' },
-      });
-      if (!created.access_token || !created.user?.id)
-        throw new Error('Test signup did not create a session.');
-      users.push({ id: created.user.id, token: created.access_token, email });
+      const created = await createConfirmedTestAccount(env, { email, password, displayName: 'Push ' + name }, id => { users.push({ id, token: '', email }); save(); });
+      users[users.length - 1].token = created.access_token;
       save();
     }
     const [host, recipient] = users;

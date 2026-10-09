@@ -19,11 +19,13 @@
     "firebase": "12.19.0",
     "livekit-client": "2.22.3",
     "lucide-react": "1.53.0",
+    "papaparse": "5.7.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@playwright/test": "1.58.2",
+    "@types/papaparse": "5.5.2",
     "@types/react": "19.2.0",
     "@types/react-dom": "19.2.0",
     "typescript": "6.0.3",

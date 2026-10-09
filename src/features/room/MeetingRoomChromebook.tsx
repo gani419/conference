@@ -1,3 +1,4 @@
+import { AppIcon } from '../../components/icons/AppIcon';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -45,7 +46,7 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
       <View style={styles.topBar}>
         <View style={styles.topBarLeft}>
           <View style={styles.logoBadge}>
-            <Text style={styles.logoText}>🎥</Text>
+            <AppIcon style={styles.logoText} name="video" />
           </View>
           <View>
             <Text style={styles.meetingTitle}>{c.meeting?.title || 'Conference Room'}</Text>
@@ -64,7 +65,7 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
           {c.isHostOrCoHost && (
             <View style={styles.hostIndicator}>
               <Text style={styles.hostIndicatorText}>
-                🛡️ Moderation: {c.myRole.toUpperCase()}
+                 Moderation: {c.myRole.toUpperCase()}
               </Text>
             </View>
           )}
@@ -96,9 +97,9 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
               style={[styles.alertPill, { backgroundColor: '#8b5cf6' }]}
               onPress={() => c.setActivePanel('hands')}
             >
-              <Text style={styles.alertPillText}>
-                ✋ Hands ({c.raisedHandParticipants.length})
-              </Text>
+              <View style={{flexDirection:'row',alignItems:'center',gap:6}}><AppIcon name='hand' size={16} /><Text style={styles.alertPillText}>
+                 Hands ({c.raisedHandParticipants.length})
+              </Text></View>
             </TouchableOpacity>
           )}
         </View>
@@ -186,7 +187,7 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
                     Lobby Admission Queue
                   </Text>
                   <TouchableOpacity onPress={() => c.setActivePanel('none')}>
-                    <Text style={[styles.closeText, { color: tokens.textMuted }]}>✕</Text>
+                    <AppIcon style={[styles.closeText, { color: tokens.textMuted }]} name="x" />
                   </TouchableOpacity>
                 </View>
                 <LobbyApprovalSheet
@@ -204,7 +205,7 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
                     Permission Requests
                   </Text>
                   <TouchableOpacity onPress={() => c.setActivePanel('none')}>
-                    <Text style={[styles.closeText, { color: tokens.textMuted }]}>✕</Text>
+                    <AppIcon style={[styles.closeText, { color: tokens.textMuted }]} name="x" />
                   </TouchableOpacity>
                 </View>
                 <PermissionRequestsSheet
@@ -222,7 +223,7 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
                     Raised Hands
                   </Text>
                   <TouchableOpacity onPress={() => c.setActivePanel('none')}>
-                    <Text style={[styles.closeText, { color: tokens.textMuted }]}>✕</Text>
+                    <AppIcon style={[styles.closeText, { color: tokens.textMuted }]} name="x" />
                   </TouchableOpacity>
                 </View>
                 <RaisedHandsQueue
@@ -239,7 +240,7 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
                     Meeting Roster ({c.inMeetingParticipants.length})
                   </Text>
                   <TouchableOpacity onPress={() => c.setActivePanel('none')}>
-                    <Text style={[styles.closeText, { color: tokens.textMuted }]}>✕</Text>
+                    <AppIcon style={[styles.closeText, { color: tokens.textMuted }]} name="x" />
                   </TouchableOpacity>
                 </View>
                 <ScrollView style={styles.rosterScroll}>
@@ -283,7 +284,7 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
                               }
                             >
                               <Text style={styles.actionChipText}>
-                                {p.role === 'co_host' ? '⭐ Co-Host' : 'Make Co-Host'}
+                                {p.role === 'co_host' ? ' Co-Host' : 'Make Co-Host'}
                               </Text>
                             </TouchableOpacity>
                           )}
@@ -328,7 +329,8 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
           c.setActivePanel((prev) => (prev === 'participants' ? 'none' : 'participants'))
         }
         onToggleRaiseHand={c.handleToggleRaiseHand}
-        onLeavePress={c.isHostOrCoHost?c.handleEndMeetingForAll:c.handleLeaveMeeting}
+        onLeavePress={c.handleLeaveMeeting}
+        onEndMeetingPress={c.handleEndMeetingForAll}
         onMuteAll={c.isHostOrCoHost ? c.handleMuteAll : undefined}
         onStopCameras={c.isHostOrCoHost ? c.handleStopAllCameras : undefined}
         onToggleLockEntry={c.isHostOrCoHost ? c.handleToggleLockMeeting : undefined}
@@ -365,9 +367,9 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
                 style={[styles.actionRow, { borderBottomColor: tokens.borderSubtle }]}
                 onPress={() => c.handleMuteParticipant(c.selectedParticipant!.id)}
               >
-                <Text style={[styles.actionText, { color: tokens.textMain }]}>
-                  🔇 Mute Microphone
-                </Text>
+                <View style={{flexDirection:'row',alignItems:'center',gap:6}}><AppIcon name='mic-off' size={16} /><Text style={[styles.actionText, { color: tokens.textMain }]}>
+                   Mute Microphone
+                </Text></View>
               </TouchableOpacity>
 
               {c.myRole === 'host' && (
@@ -397,7 +399,7 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
                 }}
               >
                 <Text style={[styles.actionText, { color: tokens.textMain }]}>
-                  📌 Pin to Main Stage
+                   Pin to Main Stage
                 </Text>
               </TouchableOpacity>
 
@@ -406,7 +408,7 @@ export const MeetingRoomChromebook: React.FC<ReturnType<typeof useMeetingRoomCon
                 onPress={() => c.handleRemoveParticipant(c.selectedParticipant!.id)}
               >
                 <Text style={[styles.actionText, { color: tokens.danger }]}>
-                  🚫 Remove from Meeting
+                   Remove from Meeting
                 </Text>
               </TouchableOpacity>
             </View>

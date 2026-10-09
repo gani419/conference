@@ -1,6 +1,9 @@
 package com.conference
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
 import com.livekit.reactnative.LiveKitReactNative
 import com.livekit.reactnative.audio.AudioType
 import com.facebook.react.PackageList
@@ -24,6 +27,9 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel("conference_invites", "Meeting invitations", NotificationManager.IMPORTANCE_DEFAULT))
+    }
     LiveKitReactNative.setup(this, AudioType.CommunicationAudioType())
     loadReactNative(this)
   }

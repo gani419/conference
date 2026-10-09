@@ -10,7 +10,7 @@ jest.mock('./src/backend/supabaseClient', () => ({ supabase: {
   auth: { getSession: jest.fn(async()=>({data:{session:null},error:null})),
     onAuthStateChange: jest.fn(()=>({data:{subscription:{unsubscribe:jest.fn()}}})),
     signInWithPassword:jest.fn(),signUp:jest.fn(),signInAnonymously:jest.fn(),signOut:jest.fn(),getUser:jest.fn() },
-  from:jest.fn(),channel:jest.fn(),removeChannel:jest.fn(),
+  rpc:jest.fn(),from:jest.fn(),channel:jest.fn(),removeChannel:jest.fn(),
 } }));
 
 // Mock react-native-mmkv
@@ -77,3 +77,14 @@ jest.mock('@react-native-documents/picker', () => ({
     csv: 'text/csv',
   },
 }));
+
+jest.mock('@react-native-firebase/messaging', () => ({
+  getMessaging: jest.fn(() => ({})), getToken: jest.fn(async () => 'test-fcm-token-abcdefghijklmnopqrstuvwxyz'),
+  deleteToken: jest.fn(async () => {}), setAutoInitEnabled: jest.fn(async () => {}),
+  hasPermission: jest.fn(async () => 1), AuthorizationStatus: { DENIED: 0, AUTHORIZED: 1 },
+  getInitialNotification: jest.fn(async () => null),
+  onMessage: jest.fn(() => () => {}), onTokenRefresh: jest.fn(() => () => {}),
+  onNotificationOpenedApp: jest.fn(() => () => {}),
+}));
+
+jest.mock('@react-native-community/datetimepicker', () => ({ __esModule: true, default: 'DateTimePicker', DateTimePickerAndroid: { open: jest.fn() } }));

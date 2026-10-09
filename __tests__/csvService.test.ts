@@ -43,6 +43,8 @@ describe('csvService', () => {
     expect(result.drafts[0]?.isValid).toBe(false);
     expect(result.drafts[0]?.errors?.displayName).toBe('Name is required');
     expect(result.drafts[1]?.isValid).toBe(false);
-    expect(result.drafts[1]?.errors?.contact).toBe('At least one phone or email is required');
+    expect(result.drafts[1]?.errors?.contact).toBe('A valid email address is required');
   });
 });
+
+test('CSV rejects phone-only invitees and invalid emails',()=>{ const result=csvService.parseCsv('display_name,email,phone,role\nPhone User,,+14155550101,guest\nBad Email,bad-address,,guest');expect(result.validCount).toBe(0);expect(result.malformedCount).toBe(2);});

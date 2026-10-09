@@ -9,6 +9,7 @@ export interface FieldError {
 export type ApiErrorCode =
   | 'VALIDATION_ERROR'
   | 'UNAUTHENTICATED'
+  | 'EMAIL_NOT_CONFIRMED'
   | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'CONFLICT'

@@ -1,3 +1,5 @@
+import { feedback } from '../../services/feedback';
+import { AppIcon } from '../icons/AppIcon';
 import React, { useState } from 'react';
 import {
   View,
@@ -7,8 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  Alert,
-} from 'react-native';
+  } from 'react-native';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 import { SEEDED_USERS } from '../../backend/mock/seed';
 import { mockScenarioControls } from '../../backend/mock/scenarios';
@@ -58,7 +59,7 @@ export const DevControlsModal: React.FC<DevControlsModalProps> = ({
             },
           };
     dispatch(setSession(session));
-    Alert.alert('Identity Switched', `Active user is now: ${user.displayName} (${user.kind})`);
+    feedback.alert('Identity Switched', `Active user is now: ${user.displayName} (${user.kind})`);
   };
 
   const handleNetworkToggle = (val: boolean): void => {
@@ -72,13 +73,13 @@ export const DevControlsModal: React.FC<DevControlsModalProps> = ({
         <View style={[styles.container, { backgroundColor: tokens.surface }]}>
           <View style={[styles.header, { borderBottomColor: tokens.border }]}>
             <View>
-              <Text style={[styles.title, { color: tokens.textMain }]}>🛠️ Dev Scenario Controls</Text>
+              <Text style={[styles.title, { color: tokens.textMain }]}> Dev Scenario Controls</Text>
               <Text style={[styles.subtitle, { color: tokens.textMuted }]}>
                 Simulate events, switch roles & test edge cases
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={[styles.closeText, { color: tokens.textMain }]}>✕</Text>
+              <AppIcon style={[styles.closeText, { color: tokens.textMain }]} name="x" />
             </TouchableOpacity>
           </View>
 
@@ -121,12 +122,12 @@ export const DevControlsModal: React.FC<DevControlsModalProps> = ({
                 style={[styles.actionBtn, { backgroundColor: tokens.surfaceSubtle }]}
                 onPress={() => {
                   mockScenarioControls.simulateNotification();
-                  Alert.alert('Simulated', 'Incoming meeting invitation notification sent.');
+                  feedback.alert('Simulated', 'Incoming meeting invitation notification sent.');
                 }}
               >
-                <Text style={[styles.actionText, { color: tokens.textMain }]}>
-                  🔔 Trigger Incoming Notification
-                </Text>
+                <View style={{flexDirection:'row',alignItems:'center',gap:6}}><AppIcon name='bell' size={16} /><Text style={[styles.actionText, { color: tokens.textMain }]}>
+                   Trigger Incoming Notification
+                </Text></View>
               </TouchableOpacity>
 
               {activeMeetingId && (
@@ -135,11 +136,11 @@ export const DevControlsModal: React.FC<DevControlsModalProps> = ({
                     style={[styles.actionBtn, { backgroundColor: tokens.surfaceSubtle }]}
                     onPress={() => {
                       mockScenarioControls.simulateHostApproval(activeMeetingId, 'part-lobby-casey');
-                      Alert.alert('Simulated', 'Casey Park admitted from lobby.');
+                      feedback.alert('Simulated', 'Casey Park admitted from lobby.');
                     }}
                   >
                     <Text style={[styles.actionText, { color: tokens.textMain }]}>
-                      ✅ Host Approves Lobby User (Casey)
+                       Host Approves Lobby User (Casey)
                     </Text>
                   </TouchableOpacity>
 
@@ -147,11 +148,11 @@ export const DevControlsModal: React.FC<DevControlsModalProps> = ({
                     style={[styles.actionBtn, { backgroundColor: tokens.surfaceSubtle }]}
                     onPress={() => {
                       mockScenarioControls.simulatePermissionRevocation(activeMeetingId, 'part-guest-priya');
-                      Alert.alert('Simulated', 'Permissions revoked for Priya Shah.');
+                      feedback.alert('Simulated', 'Permissions revoked for Priya Shah.');
                     }}
                   >
                     <Text style={[styles.actionText, { color: tokens.textMain }]}>
-                      🚫 Host Revokes Permissions (Priya)
+                       Host Revokes Permissions (Priya)
                     </Text>
                   </TouchableOpacity>
 
@@ -162,11 +163,11 @@ export const DevControlsModal: React.FC<DevControlsModalProps> = ({
                         activeMeetingId,
                         'Host Announcement: Please wrap up questions in 5 minutes.',
                       );
-                      Alert.alert('Simulated', 'Announcement broadcasted.');
+                      feedback.alert('Simulated', 'Announcement broadcasted.');
                     }}
                   >
                     <Text style={[styles.actionText, { color: tokens.textMain }]}>
-                      📢 Host Broadcasts Announcement
+                       Host Broadcasts Announcement
                     </Text>
                   </TouchableOpacity>
 
@@ -174,11 +175,11 @@ export const DevControlsModal: React.FC<DevControlsModalProps> = ({
                     style={[styles.actionBtn, { backgroundColor: tokens.dangerBg }]}
                     onPress={() => {
                       mockScenarioControls.simulateMeetingCancellation(activeMeetingId);
-                      Alert.alert('Simulated', 'Meeting marked cancelled.');
+                      feedback.alert('Simulated', 'Meeting marked cancelled.');
                     }}
                   >
                     <Text style={[styles.actionText, { color: tokens.danger }]}>
-                      🛑 Host Cancels Active Meeting
+                       Host Cancels Active Meeting
                     </Text>
                   </TouchableOpacity>
                 </>
@@ -206,11 +207,11 @@ export const DevControlsModal: React.FC<DevControlsModalProps> = ({
               style={[styles.resetBtn, { backgroundColor: tokens.dangerBg, marginTop: 20 }]}
               onPress={() => {
                 mockScenarioControls.resetDatabase();
-                Alert.alert('Database Reset', 'Mock database restored to initial seed.');
+                feedback.alert('Database Reset', 'Mock database restored to initial seed.');
               }}
             >
               <Text style={[styles.resetText, { color: tokens.danger }]}>
-                🔄 Reset Mock Database to Seed
+                 Reset Mock Database to Seed
               </Text>
             </TouchableOpacity>
           </ScrollView>

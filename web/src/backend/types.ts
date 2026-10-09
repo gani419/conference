@@ -114,7 +114,14 @@ export interface MeetingDraft {
 export interface ConferenceBackend {
   restore(): Promise<Identity | null>;
   signIn(email: string, password: string): Promise<void>;
-  signUp(name: string, email: string, password: string, avatarId?: string): Promise<void>;
+  signUp(
+    name: string,
+    email: string,
+    password: string,
+    avatarId?: string,
+  ): Promise<{ requiresVerification: boolean }>;
+  verifyEmail(email: string, code: string): Promise<void>;
+  resendEmailVerification(email: string): Promise<void>;
   guest(name: string): Promise<void>;
   signOut(): Promise<void>;
   onIdentityChange(callback: () => void): () => void;

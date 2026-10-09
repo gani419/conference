@@ -1,3 +1,4 @@
+import { createConfirmedTestAccount } from '../../backend/scripts/test-accounts.mjs';
 import { expect, test } from '@playwright/test';
 import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
@@ -88,14 +89,12 @@ test('host and guest use the hosted backend for admission, media, moderation, ch
         }
       });
     }
+    const fixture = await createConfirmedTestAccount(env, { email: `web-test-${tag}@example.com`, password, displayName: `WebHost${tag}` }, id => { state.users.push(id); save(); });
+    state.hostToken = fixture.access_token; state.email = `web-test-${tag}@example.com`; state.password = password; save();
     await host.goto('/');
-    await host.getByRole('button', { name: 'Create an account' }).click();
-    await host.getByLabel('Display name').fill(`WebHost${tag}`);
-    await host.getByLabel('Email address').fill(`web-test-${tag}@example.com`);
+    await host.getByLabel('Email address').fill(state.email);
     await host.getByLabel('Password', { exact: true }).fill(password);
-    await host
-      .getByRole('button', { name: 'Create account', exact: true })
-      .click();
+    await host.getByRole('button', { name: 'Log in', exact: true }).click();
     await expect(
       host.getByRole('button', { name: '+ New meeting' }),
     ).toBeVisible();

@@ -1,6 +1,8 @@
 import type { BackendAdapter } from './BackendAdapter';
 import type { ApiResult, RequestContext, PageRequest } from '../types/common';
 import type { Meeting, MeetingSummary } from '../types/meeting';
+import { EMAIL_CODE_LENGTH } from '../../shared/emailVerification';
+import type { ApiErrorCode } from '../types/common';
 import type { Session } from '../types/auth';
 import { supabase } from './supabaseClient';
 import { PUBLIC_ENV } from '../config/publicEnvironment.generated';
@@ -8,7 +10,11 @@ import * as model from './supabaseModels';
 
 type Input<K extends keyof BackendAdapter> = Parameters<BackendAdapter[K]>[0];
 class BackendError extends Error {
-  constructor(message: string, public status = 400) {
+  constructor(
+    message: string,
+    public status = 400,
+    public code?: ApiErrorCode,
+  ) {
     super(message);
   }
 }
@@ -100,7 +106,8 @@ export class SupabaseBackendAdapter implements BackendAdapter {
         serverTime: new Date().toISOString(),
         error: {
           code:
-            status === 401
+            (error instanceof BackendError && error.code) ||
+            (status === 401
               ? 'UNAUTHENTICATED'
               : status === 403
               ? 'FORBIDDEN'
@@ -108,7 +115,7 @@ export class SupabaseBackendAdapter implements BackendAdapter {
               ? 'CONFLICT'
               : status === 400
               ? 'VALIDATION_ERROR'
-              : 'NETWORK_ERROR',
+              : 'NETWORK_ERROR'),
           message: error instanceof Error ? error.message : 'Request failed',
           fieldErrors: [],
         },
@@ -154,8 +161,12 @@ export class SupabaseBackendAdapter implements BackendAdapter {
         error instanceof BackendError &&
         [400, 403].includes(error.status) &&
         previews.has(id)
-      )
-        return previews.get(id)!;
+      ) {
+        const preview = previews.get(id)!;
+        return preview.expiresAt && Date.parse(preview.expiresAt) <= Date.now()
+          ? { ...preview, status: 'ended' as const }
+          : preview;
+      }
       throw error;
     }
   }
@@ -168,7 +179,13 @@ export class SupabaseBackendAdapter implements BackendAdapter {
         password: payload.password,
       });
       if (error || !data.session)
-        throw new BackendError(error?.message || 'Login failed', 401);
+        throw new BackendError(
+          error?.message || 'Login failed',
+          401,
+          error?.code === 'email_not_confirmed'
+            ? 'EMAIL_NOT_CONFIRMED'
+            : undefined,
+        );
       return { session: model.appSession(data.session) };
     });
   }
@@ -186,10 +203,18 @@ export class SupabaseBackendAdapter implements BackendAdapter {
           },
         },
       });
-      if (error || !data.session)
-        throw new BackendError(
-          error?.message || 'Account creation did not issue a session',
-        );
+      if (error || !data.user)
+        throw new BackendError(error?.message || 'Account creation failed');
+      if (!data.session) {
+        const user = model.appUser(data.user);
+        if (user.kind !== 'registered')
+          throw new BackendError('Registered account required');
+        return {
+          user,
+          verificationId: payload.identifier.email.trim().toLowerCase(),
+          verificationExpiresAt: '',
+        };
+      }
       const session = model.appSession(data.session);
       if (session.kind !== 'registered')
         throw new BackendError('Registered account required');
@@ -219,14 +244,32 @@ export class SupabaseBackendAdapter implements BackendAdapter {
       return { session };
     });
   }
-  verifyContact(_payload: Input<'verifyContact'>, ctx: RequestContext) {
+  verifyContact(payload: Input<'verifyContact'>, ctx: RequestContext) {
     return this.run<{ session: Session }>(ctx, async () => {
-      throw new BackendError('Email verification is disabled');
+      if (!new RegExp(`^\\d{${EMAIL_CODE_LENGTH}}$`).test(payload.code))
+        throw new BackendError(
+          `Enter the ${EMAIL_CODE_LENGTH}-digit email code`,
+        );
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: payload.verificationId.trim().toLowerCase(),
+        token: payload.code,
+        type: 'email',
+      });
+      if (error || !data.session)
+        throw new BackendError(
+          error?.message || 'Verification failed. Request a new code.',
+        );
+      return { session: model.appSession(data.session) };
     });
   }
-  resendVerificationCode(_id: string, ctx: RequestContext) {
+  resendVerificationCode(email: string, ctx: RequestContext) {
     return this.run<boolean>(ctx, async () => {
-      throw new BackendError('Email verification is disabled');
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim().toLowerCase(),
+      });
+      if (error) throw new BackendError(error.message);
+      return true;
     });
   }
   forgotPassword(_payload: Input<'forgotPassword'>, ctx: RequestContext) {
@@ -331,8 +374,16 @@ export class SupabaseBackendAdapter implements BackendAdapter {
   }
   resolveMeeting(payload: Input<'resolveMeeting'>, ctx: RequestContext) {
     return this.run(ctx, async () => {
-      const code =
-        payload.codeOrLink.trim().split(/[/?#]/).filter(Boolean).pop() || '';
+      let code = payload.codeOrLink.trim();
+      try {
+        const url = new URL(code);
+        code =
+          url.searchParams.get('join') ||
+          url.pathname.split('/').filter(Boolean).pop() ||
+          '';
+      } catch {
+        /* A plain code is valid. */
+      }
       const row = await this.call('resolve_meeting', { code }, ctx);
       const m = model.meeting(row);
       previews.set(m.id, m);

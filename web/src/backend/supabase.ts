@@ -15,8 +15,13 @@ const client = createClient(
     },
   },
 );
-function check(error: { message: string } | null) {
-  if (error) throw new Error(error.message);
+export class AuthFlowError extends Error {
+  constructor(message: string, public code?: string) {
+    super(message);
+  }
+}
+function check(error: { message: string; code?: string } | null) {
+  if (error) throw new AuthFlowError(error.message, error.code);
 }
 async function request<T>(
   path: string,
@@ -81,10 +86,21 @@ export const backend: ConferenceBackend = {
       options: { data: { displayName: name, avatarId } },
     });
     check(error);
+    if (!data.user) throw new Error('Account creation failed.');
+    return { requiresVerification: !data.session };
+  },
+  async verifyEmail(email, code) {
+    const { data, error } = await client.auth.verifyOtp({
+      email,
+      token: code,
+      type: 'email',
+    });
+    check(error);
     if (!data.session)
-      throw new Error(
-        'Account created without a session. Check the project email confirmation settings.',
-      );
+      throw new Error('Verification failed. Request a new code.');
+  },
+  async resendEmailVerification(email) {
+    check((await client.auth.resend({ type: 'signup', email })).error);
   },
   async guest(name) {
     check(
